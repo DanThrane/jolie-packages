@@ -1,6 +1,6 @@
 {
     "name": "semver",
-    "main": "main.ol",
+    "main": "",
     "scripts": {
         "build": {
             "cmd": "./build"

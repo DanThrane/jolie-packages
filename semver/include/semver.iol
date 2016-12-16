@@ -5,45 +5,34 @@ type SemVer: void {
     .label?: string
 }
 
-type SemVerPartial: void {
-    .major: int
-    .minor: int
-    .patch: int
+type IncrementVersionRequest: string {
+    .type: int
 }
 
-type SemVerRange: void {
-    .comparator: int
-    .partial: SemVerPartial
-}
-
-type SemVerRangeSet: void {
-    .ranges[1,*]: SemVerRange
-}
-
-type VersionSatisfiesRangeRequest: void {
-    .version: SemVer
-    .range: SemVerRangeSet
-}
-
-type VersionComparisonRequest: void {
-    .left: SemVer
-    .right: SemVer
+type SatisfiesVersionRequest: void {
+    .version: string
+    .range: string
 }
 
 constants {
-    COMPARATOR_LESSER = -1,
-    COMPARATOR_EQUAL = 0,
-    COMPARATOR_GREATER = 1,
-    COMPARATOR_LESSER_EQUAL = -2,
-    COMPARATOR_GREATER_EQUAL = 2
+    VERSION_MAJOR = 1,
+    VERSION_MINOR = 2,
+    VERSION_PATCH = 3
 }
 
 interface ISemanticVersion {
     RequestResponse:
-        parseVersion(string)(SemVer) throws InvalidInputFault,
-        parsePartial(string)(SemVerPartial) throws InvalidInputFault,
-        parseRange(string)(SemVerRange) throws InvalidInputFault,
-        parseRangeSet(string)(SemVerRangeSet) throws InvalidInputFault,
-        compareVersions(VersionComparisonRequest)(int),
-        versionSatisfiesRange(VersionSatisfiesRangeRequest)(bool)
+        parseVersion(string)(SemVer),
+        incrementVersion(IncrementVersionRequest)(string) 
+            throws InvalidSemVerFieldType, InvalidVersion,
+        satisfies(SatisfiesVersionRequest)(bool),
+        validatePartial(string)(bool)
+}
+
+outputPort SemVer {
+    Interfaces: ISemanticVersion
+}
+
+embedded {
+  Java: "dk.thrane.jolie.semver.SemVer" in SemVer
 }

@@ -1,0 +1,25 @@
+{
+	"name": "jpm-packages",
+	"main": "main.ol",
+	"version": "1.2.3",
+	"license": "MIT",
+	"authors": ["Test"],
+	"scripts": {
+		"build": {
+			"cmd": "./build"
+		}
+	},
+	"registries": [
+		{
+			"name": "private",
+			"location": "socket://localhost:8080"
+		}
+	],
+	"dependencies": [
+		{
+			"name": "semver",
+			"version": ">=1.0.0",
+			"registry": "private"
+		}
+	]
+}

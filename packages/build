@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cd packages-java
+gradle jar
+cd ..
+cp packages-java/build/libs/*.jar lib

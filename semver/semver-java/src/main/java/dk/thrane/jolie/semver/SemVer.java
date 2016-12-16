@@ -2,6 +2,7 @@ package dk.thrane.jolie.semver;
 
 import com.github.zafarkhaja.semver.ParseException;
 import com.github.zafarkhaja.semver.Version;
+import com.github.zafarkhaja.semver.expr.ExpressionParser;
 import jolie.runtime.FaultException;
 import jolie.runtime.JavaService;
 import jolie.runtime.Value;
@@ -31,6 +32,16 @@ public class SemVer extends JavaService {
     @RequestResponse
     public Value parseVersion(String request) throws FaultException {
         return convertVersion(parseInternalVersion(request));
+    }
+
+    @RequestResponse
+    public Boolean validatePartial(String request) {
+        try {
+            ExpressionParser.newInstance().parse(request);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @RequestResponse

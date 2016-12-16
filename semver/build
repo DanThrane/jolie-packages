@@ -2,4 +2,4 @@
 cd semver-java
 gradle jar
 cd ..
-cp semver-java/build/libs/*.jar libs
+cp semver-java/build/libs/*.jar lib
