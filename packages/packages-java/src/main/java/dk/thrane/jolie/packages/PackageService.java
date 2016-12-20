@@ -11,14 +11,19 @@ import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static dk.thrane.jolie.packages.ValidationItemType.*;
 
 public class PackageService extends JavaService {
     private static final CharsetEncoder NAME_ENCODER = Charset.forName("US-ASCII").newEncoder();
     private static final Pattern NAME_ALLOWED_CHARACTERS = Pattern.compile("^[a-zA-Z0-9_-]*$");
+    public static final Pattern REGEX_AUTHOR = Pattern.compile("([^\\n\\r()<>]+)(<(\\S+@\\S+)>)?[ \\t]*(\\((\\S*)\\))?");
 
     @RequestResponse
     public Value validateName(Value request) {
@@ -67,9 +72,21 @@ public class PackageService extends JavaService {
 
     @RequestResponse
     public Value validateAuthors(Value request) {
-        List<ValidationItem> items = new ArrayList<>();
-        internalValidateAuthors(items, request);
-        return new ValidationResponse(items).toValue();
+        Value resp = Value.create();
+        ValueVector items = resp.getChildren("items");
+        ValueVector authors = ValueVector.create();
+        internalValidateAuthors(items, authors, request);
+        boolean hasErrors = asStream(items.iterator()).anyMatch(it ->
+                it.getFirstChild("type").intValue() == ValidationItemType.ERROR.getIdentifier());
+        if (!hasErrors) {
+            resp.getChildren("authors").deepCopy(authors);
+        }
+        return resp;
+    }
+
+    private <T> Stream<T> asStream(Iterator<T> sourceIterator) {
+        Iterable<T> iterable = () -> sourceIterator;
+        return StreamSupport.stream(iterable.spliterator(), false);
     }
 
     @RequestResponse
@@ -82,24 +99,47 @@ public class PackageService extends JavaService {
         }
     }
 
-    private void internalValidateAuthors(List<ValidationItem> items, Value request) {
+    private void internalValidateAuthors(ValueVector items, ValueVector parsedAuthors, Value request) {
         if (request.hasChildren("authors")) {
             ValueVector authors = request.getChildren("authors");
             final int[] i = {0};
             authors.iterator().forEachRemaining(author -> {
-                validateAuthor(items, i[0], author);
+                Value parsed = validateAuthor(items, i[0], author);
+                if (parsed != null) {
+                    parsedAuthors.add(parsed);
+                }
                 i[0]++;
             });
         }
     }
 
-    private void validateAuthor(List<ValidationItem> items, int i, Value authorValue) {
+    private Value validateAuthor(ValueVector items, int i, Value authorValue) {
         if (!(authorValue.valueObject() instanceof String)) {
-            items.add(createValidationItem(ERROR, "authors[" + i + "]", "Author must be a string"));
-            return;
+            items.add(createValidationItem(ERROR, "authors[" + i + "]", "Author must be a string").toValue());
+            return null;
         }
         String author = authorValue.strValue();
-        // TODO Validating both people names and emails are rather hard.
+        Matcher matcher = REGEX_AUTHOR.matcher(author);
+
+        if (matcher.matches()) {
+            Value result = Value.create();
+            result.setValue(matcher.group(1));
+
+            String email = matcher.group(3);
+            if (email != null) {
+                result.getFirstChild("email").setValue(email);
+            }
+
+            String homepage = matcher.group(5);
+            if (homepage != null) {
+                result.getFirstChild("homepage").setValue(homepage);
+            }
+            return result;
+        } else {
+            items.add(createValidationItem(ERROR, "authors[" + i + "]", "Authors must use the " +
+                    "following convention: name [\"<\" email \">\"] [\"(\" homepage \")\"]").toValue());
+            return null;
+        }
     }
 
     private Boolean checkType(JolieNativeType type, Object o) throws FaultException {

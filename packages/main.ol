@@ -181,11 +181,16 @@ main
 
 			// Validate authors
 			validateAuthors@ValidationUtil(file)(authorsResp);
+			valueToPrettyString@StringUtils(authorsResp)(prettyValue);
+			println@Console(prettyValue)();
 			for (i = 0, i < #authorsResp.items, i++) {
 				nextItem << authorsResp.items[i]
 			};
-			// TODO parse additional information from authors
-			packageBuilder.authors << file.authors;
+			if (is_defined(authorsResp.authors)) {
+				for (i = 0, i < #authorsResp.authors, i++) {
+					packageBuilder.authors[i] << authorsResp.authors[i]
+				}
+			};
 
 			// Validate registries
 			knownRegistries.public.location = "?"; // Don't really need to know where, we just need an entry for public
