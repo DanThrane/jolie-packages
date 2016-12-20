@@ -30,6 +30,16 @@ public class SemVer extends JavaService {
     }
 
     @RequestResponse
+    public Boolean validateVersion(String request) {
+        try {
+            parseInternalVersion(request);
+            return true;
+        } catch (FaultException e) {
+            return false;
+        }
+    }
+
+    @RequestResponse
     public Value parseVersion(String request) throws FaultException {
         return convertVersion(parseInternalVersion(request));
     }

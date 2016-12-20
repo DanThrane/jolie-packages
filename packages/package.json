@@ -3,7 +3,7 @@
 	"main": "main.ol",
 	"version": "1.2.3",
 	"license": "MIT",
-	"authors": ["Test"],
+	"authors": ["Test", "Test 2", "Test 3"],
 	"scripts": {
 		"build": {
 			"cmd": "./build"

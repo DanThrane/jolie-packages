@@ -43,6 +43,17 @@ embedded {
 		"dk.thrane.jolie.packages.PackageService" in ValidationUtil
 }
 
+define checkForErrors {
+	hasErrors = false;
+	currentItem -> response.items[i];
+	for (i = 0, !hasErrors && i < #response.items, i++) {
+		if (currentItem.type == VALIDATION_ERROR) {
+			hasErrors = true
+		}
+	};
+	undef(currentItem)
+}
+
 init
 {
 	getFileSeparator@File()(FILE_SEP)
@@ -51,29 +62,29 @@ init
 main
 {
 	[validate(request)(response) {
-		// TODO Exception handlers
+		nextItem -> response.items[#response.items];
+
 		scope (parsing) {
-			nextItem -> response.items[#response.items];
-
 			install(IOException => 
-				println@Console("Parsing error")();
-				response = "BAD"
+				nextItem << {
+					.type = VALIDATION_ERROR,
+					.message = "Error parsing package.json"
+				}
 			);
-			install(InvalidVersion =>
-				println@Console("Bad version")();
-				response = "BAD"
-			);
-
-
+			
 			// Parse package file
 			fileName = request.location + FILE_SEP + "package.json";
 			readFile@File({
 				.filename = fileName,
 				.format = "json"
-			})(file);
+			})(file)
+		};
 
+		checkForErrors;
+		if (!hasErrors) {
 			// Validate name
 			validateName@ValidationUtil(file)(response);
+			packageBuilder.name = file.name;
 
 			// Validate version
 			validationRequest.value -> file;
@@ -82,7 +93,15 @@ main
 			requireChildOfType@ValidationUtil(validationRequest)(hasVersion);
 
 			if (hasVersion) {
-				parseVersion@SemVer(file.version)(resp)
+				validateVersion@SemVer(file.version)(validVersion);
+				if (!validVersion) {
+					nextItem << {
+						.type = VALIDATION_ERROR,
+						.message = "'version' is not a valid semver"
+					}
+				} else {
+					parseVersion@SemVer(file.version)(packageBuilder.version)
+				}
 			} else {
 				nextItem << {
 					.type = VALIDATION_ERROR,
@@ -111,6 +130,8 @@ main
 						.message = "'" + file.license + "' is not a valid license identifier. See " + 
 							"https://spdx.org/licenses/ for a complete list of valid identifiers" 
 					}
+				} else {
+					packageBuilder.license = file.license
 				}
 			};
 
@@ -124,6 +145,12 @@ main
 				nextItem << {
 					.type = VALIDATION_ERROR,
 					.message = "'private' field must be of type bool"
+				}
+			} else {
+				if (is_defined(file.private)) {
+					packageBuilder.private = file.private
+				} else {
+					packageBuilder.private = true
 				}
 			};
 
@@ -140,11 +167,25 @@ main
 				}
 			};
 
+			if (is_defined(file.main)) {
+				exists@File(request.location + FILE_SEP + file.main)(mainExists);
+				if (!mainExists) {
+					nextItem << {
+						.type = VALIDATION_ERROR,
+						.message = "Main file '" + file.main + "' does not exist!"
+					}
+				} else {
+					packageBuilder.main = file.main
+				}
+			};
+
 			// Validate authors
 			validateAuthors@ValidationUtil(file)(authorsResp);
 			for (i = 0, i < #authorsResp.items, i++) {
 				nextItem << authorsResp.items[i]
 			};
+			// TODO parse additional information from authors
+			packageBuilder.authors << file.authors;
 
 			// Validate registries
 			knownRegistries.public.location = "?"; // Don't really need to know where, we just need an entry for public
@@ -186,7 +227,25 @@ main
 						}
 					};
 
-					knownRegistries.(registry.name).location = registry.location
+					if (registry.name == "public") {
+						nextItem << {
+							.type = VALIDATION_ERROR,
+							.message = "'registries[" + i + "].name' cannot be 'public'!"
+						}
+					};
+
+					if (is_defined(knownRegistries.(registry.name))) {
+						nextItem << {
+							.type = VALIDATION_WARNING,
+							.message = "'registries[" + i + "].name' is overriding a previous registry definition!"
+						}
+					};
+
+					knownRegistries.(registry.name).location = registry.location;
+
+					packageRegistry.name = registry.name;
+					packageRegistry.location = registry.location;
+					packageBuilder.registries[#packageBuilder.registries] << packageRegistry
 				}
 			};
 
@@ -205,6 +264,8 @@ main
 							.type = VALIDATION_ERROR,
 							.message = "'dependencies[" + i + "].name' must be of type string"
 						}
+					} else {
+						packageDependency.name = dependency.name
 					};
 
 					// Validate dependencies.version
@@ -225,6 +286,8 @@ main
 								.type = VALIDATION_ERROR,
 								.message = "'dependencies[" + i + "].version' must be a valid version expression"
 							}
+						} else {
+							packageDependency.version = dependency.version
 						}
 					};
 
@@ -234,21 +297,36 @@ main
 					validationRequest.type = TYPE_STRING;
 					optionalChildOfType@ValidationUtil(validationRequest)(validRegistryType);
 
-					if (!validRegistryType) {
-						nextItem << {
-							.type = VALIDATION_ERROR,
-							.message = "'dependencies[" + i + "].registry' must be of type string"
-						}
+					if (!is_defined(dependency.registry)) {
+						packageDependency.registry = "public"
 					} else {
-						if (!is_defined(knownRegistries.(dependency.registry))) {
+						if (!validRegistryType) {
 							nextItem << {
 								.type = VALIDATION_ERROR,
-								.message = "'dependencies[" + i +"].registry' contains an unknown registry '" + 
-									dependency.registry + "'"
+								.message = "'dependencies[" + i + "].registry' must be of type string"
+							}
+						} else {
+							if (!is_defined(knownRegistries.(dependency.registry))) {
+								nextItem << {
+									.type = VALIDATION_ERROR,
+									.message = "'dependencies[" + i +"].registry' contains an unknown registry '" + 
+										dependency.registry + "'"
+								}
+							} else {
+								packageDependency.registry = dependency.registry
 							}
 						}
-					}
+					};
+					packageBuilder.dependencies[#packageBuilder.dependencies] << packageDependency
 				}
+			};
+			
+			// Append processed package if we have no errors
+			checkForErrors;
+			if (!hasErrors) {
+				response.package -> packageBuilder;
+				valueToPrettyString@StringUtils(response.package)(prettyPackage);
+				println@Console(prettyPackage)()
 			}
 		}
 	}]

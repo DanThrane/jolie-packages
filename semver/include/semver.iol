@@ -5,6 +5,8 @@ type SemVer: void {
     .label?: string
 }
 
+type SemVerExpression: string
+
 type IncrementVersionRequest: string {
     .type: int
 }
@@ -26,7 +28,8 @@ interface ISemanticVersion {
         incrementVersion(IncrementVersionRequest)(string) 
             throws InvalidSemVerFieldType, InvalidVersion,
         satisfies(SatisfiesVersionRequest)(bool),
-        validatePartial(string)(bool)
+        validatePartial(string)(bool),
+        validateVersion(string)(bool)
 }
 
 outputPort SemVer {
