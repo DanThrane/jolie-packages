@@ -1,6 +1,7 @@
 include "registry.iol"
 include "console.iol"
 include "file.iol"
+include "zip_utils.iol"
 
 execution { concurrent }
 
@@ -21,6 +22,15 @@ define createPackage {
 
 define getPackageInformation {
     packageInformation -> global.packages.(packageName)
+}
+
+init
+{
+    getFileSeparator@File()(FILE_SEP);
+    FOLDER_PACKAGES = "data" + FILE_SEP + "packages";
+    FOLDER_WORK = "data" + FILE_SEP + "work";
+
+    mkdir@File(FOLDER_PACKAGES)()
 }
 
 main
@@ -65,10 +75,13 @@ main
         checkIfPackageExists;
 
         if (packageExists) {
+            temporaryFileName = FOLDER_WORK + FILE_SEP + packageName + ".pkg";
             writeFile@File({ 
                 .content = req.payload,
-                .filename = packageName
+                .filename = temporaryFileName
             })();
+
+            readEntry@ZipUtils({ .entry = "package.json", .filename = "" })
             res = true;
             res.message = "Package published!"
         } else {

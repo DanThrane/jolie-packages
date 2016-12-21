@@ -1,0 +1,10 @@
+{
+    "name": "pkg",
+    "description": "Handles the internal format for JPM packages",
+    "version": "1.0.0",
+    "private": false,
+    "license": "MIT",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "dependencies": [
+    ]
+}

@@ -41,6 +41,8 @@ main
             .package = "baz",
             .payload = payload
         })(value);
-        print_value
+        print_value;
+        foo = 2 + 2
     }
 }
+

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+NAME=pkg-java
+mkdir -p lib
+cd $NAME 
+gradle jar
+cd ..
+cp $NAME/build/libs/*.jar lib
