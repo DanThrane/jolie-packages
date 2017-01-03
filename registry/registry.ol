@@ -4,6 +4,7 @@ include "console.iol"
 include "file.iol"
 include "zip_utils.iol"
 include "database.iol"
+include "time.iol"
 include "semver" "semver.iol"
 include "packages" "packages.iol"
 
@@ -44,7 +45,8 @@ define DatabaseConnect {
 define DatabaseInit {
     scope (dbInit) {
         install(SQLException =>
-            println@Console("Exception when initializing database")()
+            println@Console("Exception when initializing database")();
+            exit 
         );
         DatabaseConnect;
         update@Database("
@@ -224,11 +226,25 @@ define PackageInsertVersion {
     }
 }
 
+/**
+ * Returns a unique safe working name
+ * @output temporaryName: string
+ */
+define GetSafeWorkingName {
+    getCurrentTimeMillis@Time()(time);
+    synchronized(counterLock){
+        suffix = global.counter;
+        global.counter = global.counter + 1
+    };
+    temporaryName = time + "_" + suffix
+}
+
 init
 {
     getFileSeparator@File()(FILE_SEP);
     FOLDER_PACKAGES = "data" + FILE_SEP + "packages";
     FOLDER_WORK = "data" + FILE_SEP + "work";
+    global.counter = 0;
 
     mkdir@File(FOLDER_PACKAGES)();
     mkdir@File(FOLDER_WORK)();
@@ -282,7 +298,8 @@ main
         PackageCheckIfExists;
 
         if (packageExists) {
-            temporaryNameAndLoc = FOLDER_WORK + FILE_SEP + packageName;
+            GetSafeWorkingName;
+            temporaryNameAndLoc = FOLDER_WORK + FILE_SEP + temporaryName;
             temporaryFileName = temporaryNameAndLoc + ".pkg";
             writeFile@File({ 
                 .content = req.payload,
@@ -307,29 +324,36 @@ main
                     res.message = "Package has errors."
                 } else {
                     package -> validated.package;
-                    PackageCheckVersion;
-                    if (isNewest) {
-                        PackageInsertVersion;
-                        baseFolder = FOLDER_PACKAGES + FILE_SEP + package.name;
-                        mkdir@File(baseFolder)();
-                        rename@File({
-                            .filename = temporaryFileName,
-                            .to = baseFolder + FILE_SEP + 
-                                package.version.major + "_" + 
-                                package.version.minor + "_" + 
-                                package.version.patch + ".pkg"
-                        })();
-                        res = true;
-                        res.message = "OK"
-                    } else {
-                        convertToString@SemVer(newestVersion)(versionString);
+
+                    if (package.name != packageName) {
                         res = false;
-                        res.message = "Registry already contains a newer " + 
-                            "version of package '" + package.name + 
-                            "' of version '" + versionString + "'"
+                        res.message = "Package names do not match"
+                    } else {
+                        PackageCheckVersion;
+                        if (isNewest) {
+                            PackageInsertVersion;
+                            baseFolder = FOLDER_PACKAGES + FILE_SEP + package.name;
+                            mkdir@File(baseFolder)();
+                            rename@File({
+                                .filename = temporaryFileName,
+                                .to = baseFolder + FILE_SEP + 
+                                    package.version.major + "_" + 
+                                    package.version.minor + "_" + 
+                                    package.version.patch + ".pkg"
+                            })();
+                            res = true;
+                            res.message = "OK"
+                        } else {
+                            convertToString@SemVer(newestVersion)(versionString);
+                            res = false;
+                            res.message = "Registry already contains a newer " + 
+                                "version of package '" + package.name + 
+                                "' of version '" + versionString + "'"
+                        }
                     }
                 }
-            }
+            };
+            delete@File(temporaryFileName)()
         } else {
             res = false;
             res.message = "Package not found!"

@@ -33,17 +33,13 @@ constants {
     TYPE_BOOL = 1,
     TYPE_INT = 2,
     TYPE_LONG = 3,
-    TYPE_DOUBLE = 4,
-    VALIDATION_INFO = 0,
-    VALIDATION_WARNING = 1,
-    VALIDATION_ERROR = 2,
+    TYPE_DOUBLE = 4
 }
 
 embedded {
     Java:
         "dk.thrane.jolie.packages.PackageService" in ValidationUtil
 }
-
 
 init
 {
@@ -307,7 +303,7 @@ main
                     packageBuilder.dependencies[#packageBuilder.dependencies] << packageDependency
                 }
             };
-            
+
             // Append processed package if we have no errors
             ValidationCheckForErrors;
             if (!hasErrors) {
@@ -317,5 +313,4 @@ main
             }
         }
     }]
-
 }

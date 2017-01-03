@@ -1,5 +1,11 @@
 include "semver" "semver.iol"
 
+constants {
+    VALIDATION_INFO = 0,
+    VALIDATION_WARNING = 1,
+    VALIDATION_ERROR = 2
+}
+
 type LicenseIdentifier: string
 type Author: string {
     .email?: string
