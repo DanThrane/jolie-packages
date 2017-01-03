@@ -29,7 +29,7 @@ type Package: void {
 }
 
 type ValidationRequest: void {
-    .location: string
+    .data: any 
 }
 
 type ValidationItemType: int
@@ -44,7 +44,19 @@ type ValidationResponse: void {
     .package?: Package
 }
 
+define ValidationCheckForErrors {
+    hasErrors = false;
+    currentItem -> report.items[i];
+    for (i = 0, !hasErrors && i < #report.items, i++) {
+        if (currentItem.type == VALIDATION_ERROR) {
+            hasErrors = true
+        }
+    };
+    undef(currentItem)
+}
+
 interface IPackages {
     RequestResponse:
         validate(ValidationRequest)(ValidationResponse)
 }
+

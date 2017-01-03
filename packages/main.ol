@@ -2,6 +2,7 @@ include "file.iol"
 include "packages.iol"
 include "string_utils.iol"
 include "console.iol"
+include "json_utils.iol"
 include "semver" "semver.iol"
 
 execution { concurrent }
@@ -43,16 +44,6 @@ embedded {
         "dk.thrane.jolie.packages.PackageService" in ValidationUtil
 }
 
-define checkForErrors {
-    hasErrors = false;
-    currentItem -> response.items[i];
-    for (i = 0, !hasErrors && i < #response.items, i++) {
-        if (currentItem.type == VALIDATION_ERROR) {
-            hasErrors = true
-        }
-    };
-    undef(currentItem)
-}
 
 init
 {
@@ -65,22 +56,18 @@ main
         nextItem -> response.items[#response.items];
 
         scope (parsing) {
-            install(IOException => 
+            install(default =>
                 nextItem << {
                     .type = VALIDATION_ERROR,
                     .message = "Error parsing package.json"
                 }
             );
             
-            // Parse package file
-            fileName = request.location + FILE_SEP + "package.json";
-            readFile@File({
-                .filename = fileName,
-                .format = "json"
-            })(file)
+            getJsonValue@JsonUtils(request.data)(file)
         };
 
-        checkForErrors;
+        report -> response;
+        ValidationCheckForErrors;
         if (!hasErrors) {
             // Validate name
             validateName@ValidationUtil(file)(response);
@@ -168,15 +155,7 @@ main
             };
 
             if (is_defined(file.main)) {
-                exists@File(request.location + FILE_SEP + file.main)(mainExists);
-                if (!mainExists) {
-                    nextItem << {
-                        .type = VALIDATION_ERROR,
-                        .message = "Main file '" + file.main + "' does not exist!"
-                    }
-                } else {
-                    packageBuilder.main = file.main
-                }
+                packageBuilder.main = file.main
             };
 
             // Validate authors
@@ -330,7 +309,7 @@ main
             };
             
             // Append processed package if we have no errors
-            checkForErrors;
+            ValidationCheckForErrors;
             if (!hasErrors) {
                 response.package -> packageBuilder;
                 valueToPrettyString@StringUtils(response.package)(prettyPackage);

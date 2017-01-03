@@ -74,6 +74,22 @@ public class SemVer extends JavaService {
     }
 
     @RequestResponse
+    public String convertToString(Value request) throws FaultException {
+        requireChildren(request, "major", "minor", "patch");
+        StringBuilder builder = new StringBuilder();
+        builder.append(request.getFirstChild("major").intValue());
+        builder.append('-');
+        builder.append(request.getFirstChild("minor").intValue());
+        builder.append('-');
+        builder.append(request.getFirstChild("patch").intValue());
+        if (request.hasChildren("label")) {
+            builder.append('-');
+            builder.append(request.getFirstChild("label"));
+        }
+        return builder.toString();
+    }
+
+    @RequestResponse
     public Boolean satisfies(Value request) throws FaultException {
         requireChildren(request, "version", "range");
 

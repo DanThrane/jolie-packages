@@ -1,6 +1,7 @@
 include "packages.iol"
 include "string_utils.iol"
 include "console.iol"
+include "file.iol"
 
 outputPort Packages {
     Location: "socket://localhost:8888"
@@ -10,7 +11,8 @@ outputPort Packages {
 
 main
 {
-    validate@Packages({ .location = "." })(resp);
+    readFile@File({ .filename = "package.json" })(data);
+    validate@Packages({ .data = data })(resp);
     valueToPrettyString@StringUtils(resp)(prettyResp);
     println@Console(prettyResp)()
 }

@@ -29,7 +29,8 @@ interface ISemanticVersion {
             throws InvalidSemVerFieldType, InvalidVersion,
         satisfies(SatisfiesVersionRequest)(bool),
         validatePartial(string)(bool),
-        validateVersion(string)(bool)
+        validateVersion(string)(bool),
+        convertToString(SemVer)(string)
 }
 
 outputPort SemVer {
@@ -37,5 +38,6 @@ outputPort SemVer {
 }
 
 embedded {
-  Java: "dk.thrane.jolie.semver.SemVer" in SemVer
+    Java:
+        "dk.thrane.jolie.semver.SemVer" in SemVer
 }

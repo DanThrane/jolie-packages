@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+rm -rf lib
 cd packages-java
 gradle jar
 cd ..
