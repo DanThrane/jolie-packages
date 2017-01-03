@@ -1,0 +1,12 @@
+{
+    "name": "jpm",
+    "description": "The JPM client.",
+    "version": "0.1.0",
+    "main": "main.ol",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "license": "MIT",
+    "dependencies": [
+        { "name": "packages", "version": "*" },
+        { "name": "registry", "version": "*" },
+    ]
+}

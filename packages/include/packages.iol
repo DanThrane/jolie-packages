@@ -26,7 +26,7 @@ type Dependency: void {
 type Package: void {
     .name: string
     .version: SemVer
-    .license: LicenseIdentifier
+    .license?: LicenseIdentifier
     .private: bool
     .main?: string
     .authors[1, *]: Author
@@ -48,17 +48,7 @@ type ValidationItem: void {
 type ValidationResponse: void {
     .items[0, *]: ValidationItem
     .package?: Package
-}
-
-define ValidationCheckForErrors {
-    hasErrors = false;
-    currentItem -> report.items[i];
-    for (i = 0, !hasErrors && i < #report.items, i++) {
-        if (currentItem.type == VALIDATION_ERROR) {
-            hasErrors = true
-        }
-    };
-    undef(currentItem)
+    .hasErrors: bool
 }
 
 interface IPackages {

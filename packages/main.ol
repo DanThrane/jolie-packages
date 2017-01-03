@@ -41,6 +41,25 @@ embedded {
         "dk.thrane.jolie.packages.PackageService" in ValidationUtil
 }
 
+/**
+ * @input report: ValidationResponse
+ * @output hasErrors: bool
+ */
+define ValidationCheckForErrors {
+    hasErrors = false;
+    // We need to save the old index and restore it later. 
+    // Otherwise we will have bugs. Even worse, we can't use oldI everywhere 
+    // if we nest them :-)
+    oldI = i; 
+    for (i = 0, !hasErrors && i < #report.items, i++) {
+        if (report.items[i].type == VALIDATION_ERROR) {
+            hasErrors = true
+        }
+    };
+    i = oldI;
+    undef(oldI)
+}
+
 init
 {
     getFileSeparator@File()(FILE_SEP)
@@ -306,7 +325,8 @@ main
             ValidationCheckForErrors;
             if (!hasErrors) {
                 response.package -> packageBuilder
-            }
+            };
+            response.hasErrors = hasErrors
         }
     }]
 }

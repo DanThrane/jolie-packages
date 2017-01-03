@@ -74,16 +74,52 @@ define DatabaseInit {
 
 /**
   * @input packageName: string
+  * @input version?: SemVer
   * @output packageExists: bool
   */
 define PackageCheckIfExists {
     DatabaseConnect;
-    containsQuery = "
-        SELECT COUNT(packageName) AS count FROM package WHERE packageName = :packageName;
-    ";
-    containsQuery.packageName = packageName;
-    query@Database(containsQuery)(sqlResponse);
-    packageExists = sqlResponse.row.count == 1
+    if (!is_defined(version)) {
+        containsQuery = "
+            SELECT COUNT(packageName) AS count FROM package WHERE packageName = :packageName;
+        ";
+        containsQuery.packageName = packageName;
+        query@Database(containsQuery)(sqlResponse);
+        packageExists = sqlResponse.row.count == 1;
+
+        undef(sqlResponse);
+        undef(containsQuery)
+    } else {
+        containsQuery = "
+            SELECT
+              package.packageName AS packageName,
+              major,
+              minor,
+              patch,
+              label,
+              description,
+              license
+            FROM
+              package,
+              package_versions
+            WHERE
+              package.packageName = :packageName AND
+              package.packageName = package_versions.packageName AND
+              major = :major AND
+              minor = :minor AND
+              patch = :patch;
+        ";
+        containsQuery.packageName = packageName;
+        containsQuery.major = version.major;
+        containsQuery.minor = version.minor;
+        containsQuery.patch = version.patch;
+        
+        query@Database(containsQuery)(sqlResponse);
+        packageExists = #sqlResponse.row == 1;
+
+        undef(sqlResponse);
+        undef(containsQuery)
+    }
 }
 
 /**
@@ -106,22 +142,12 @@ define PackageCreate {
 
 /**
  * @input packageName: string
- * @output packageInformation: void { 
- *     .packageId: int, 
- *     .packageName: string, 
- *     .major: int, 
- *     .minor: int, 
- *     .patch: int, 
- *     .label?: string, 
- *     .description?: string, 
- *     .license: LicenseIdentifier
- * }
+ * @output packageInformation[0, *]: PackageInformation
  */
 define PackageGetInformation {
     DatabaseConnect;
     packageQuery = "
         SELECT
-          package.id          AS packageId,
           package.packageName AS packageName,
           major,
           minor,
@@ -130,16 +156,40 @@ define PackageGetInformation {
           description,
           license
         FROM
-          package
-          LEFT OUTER JOIN package_versions
-            ON package.name = package_versions.packageName
+          package,
+          package_versions
         WHERE
-          package.packageName = :packageName;
+          package.packageName = :packageName AND
+          package.packageName = package_versions.packageName;
     ";
     packageQuery.packageName = packageName;
     query@Database(packageQuery)(sqlResponse);
     packageInformation -> sqlResponse.row;
     undef(packageQuery)
+}
+
+/**
+ * @output packageInformation[0, *]: PackageInformation
+ */
+define PackageGetAll {
+    DatabaseConnect;
+    packageQuery = "
+        SELECT
+          package.packageName AS packageName,
+          major,
+          minor,
+          patch,
+          label,
+          description,
+          license
+        FROM
+          package,
+          package_versions
+        WHERE
+          package.packageName = package_versions.packageName;
+    ";
+    query@Database(packageQuery)(sqlResponse);
+    packageInformation -> sqlResponse.row
 }
 
 /**
@@ -273,18 +323,52 @@ main
     }]
 
     [getPackageList(req)(res) {
-        results -> res.results;
-        for (i = 0, i < #global.packageList, i++) {
-            results[#results] << { .name = global.packageList[i] }
-        }
+        PackageGetAll;
+        res.results -> packageInformation
     }]
 
     [getPackageInfo(packageName)(res) {
-        PackageCheckIfExists;
+        PackageGetInformation;
+        res.packages -> packageInformation
+    }]
 
-        if (packageExists) {
-            PackageGetInformation;
-            res.package -> packageInformation
+    [download(req)(res) {
+        packageName -> req.packageIdentifier;
+        version -> req.version;
+
+        // Check to make sure package name is safe.
+        // Technically this should be caught be the mere existance of the 
+        // package in the database, but downloading from relative paths would 
+        // be _very_ bad. So we check just to be sure.
+        match@StringUtils(packageName { .regex = "[a-zA-Z0-9_-]*" })(isGood);
+        
+        if (isGood != 1) {
+            res = false;
+            res.message = "Invalid name"
+        } else {
+            PackageCheckIfExists;
+            if (!packageExists) {
+                res = false;
+                res.message = "Could not find package"
+            } else {
+                pkgFileName = FOLDER_PACKAGES + FILE_SEP + packageName + 
+                        FILE_SEP + version.major + "_" + version.minor + "_" + 
+                        version.patch + ".pkg";
+
+                exists@File(pkgFileName)(pkgExists);
+                if (!pkgExists) {
+                    res = false;
+                    res.message = "Internal server error"
+                } else {
+                    res = true;
+                    res.message = "OK";
+
+                    readFile@File({
+                        .filename = pkgFileName,
+                        .format = "binary"
+                    })(res.payload)
+                }
+            }
         }
     }]
 
@@ -293,7 +377,6 @@ main
         // big problem. Could easily just start sending a gigantic file and DOS 
         // the server easily. Is it even possible to send messages of limited 
         // size in Jolie? 
-        println@Console("Hello, world!")();
         packageName = req.package;
         PackageCheckIfExists;
 
@@ -306,8 +389,6 @@ main
                 .filename = temporaryFileName
             })();
 
-            println@Console("Created a file!")();
-
             readEntry@ZipUtils({ 
                 .entry = "package.json", 
                 .filename = temporaryFileName
@@ -318,8 +399,7 @@ main
             } else {
                 validate@Packages({ .data = entry })(validated);
                 report -> validated;
-                ValidationCheckForErrors;
-                if (hasErrors) {
+                if (report.hasErrors) {
                     res = false;
                     res.message = "Package has errors."
                 } else {

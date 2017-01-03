@@ -1,19 +1,19 @@
+include "packages" "packages.iol"
+include "semver" "semver.iol"
+
 // Utility types
 type ServiceMessage: bool {
     .message: string
 }
 
-type PackageManifest: void {
-    .name: string
-    .description: string
-    .license: string
-    .authors[1, *]: string
-    .version: string
-}
-
 type PackageInformation: void {
-    .name: string
-    .manifests[0, *]: PackageManifest
+    .packageName: string
+    .major: int
+    .minor: int
+    .patch: int
+    .label?: string
+    .description?: string
+    .license: LicenseIdentifier
 }
 
 // Request response types
@@ -49,18 +49,17 @@ type CreatePackageResponse: ServiceMessage
 
 type GetPackageRequest: string
 type GetPackageResponse: void {
-    .package?: PackageInformation
+    .packages[0, *]: PackageInformation
 }
 
-type GetPackageListRequest: void {
-    .query?: string
-}
+type GetPackageListRequest: void
 type GetPackageListResponse: void {
     .results[0, *]: PackageInformation
 }
 
 type DownloadRequest: void {
     .packageIdentifier: string
+    .version: SemVer
 }
 type DownloadResponse: bool {
     .message: string

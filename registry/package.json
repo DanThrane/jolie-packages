@@ -1,0 +1,14 @@
+{
+    "name": "registry",
+    "description": "The JPM registry",
+    "version": "0.1.0",
+    "main": "registry.ol",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "license": "MIT",
+    "dependencies": [
+        { "name": "packages", "version": "*" },
+        { "name": "pkg", "version": "*" },
+        { "name": "semver", "version": "*" },
+        { "name": "sqlite", "version": "*" },
+    ]
+}
