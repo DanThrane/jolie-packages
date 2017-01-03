@@ -156,8 +156,6 @@ main
 
             // Validate authors
             validateAuthors@ValidationUtil(file)(authorsResp);
-            valueToPrettyString@StringUtils(authorsResp)(prettyValue);
-            println@Console(prettyValue)();
             for (i = 0, i < #authorsResp.items, i++) {
                 nextItem << authorsResp.items[i]
             };
@@ -307,9 +305,7 @@ main
             // Append processed package if we have no errors
             ValidationCheckForErrors;
             if (!hasErrors) {
-                response.package -> packageBuilder;
-                valueToPrettyString@StringUtils(response.package)(prettyPackage);
-                println@Console(prettyPackage)()
+                response.package -> packageBuilder
             }
         }
     }]
