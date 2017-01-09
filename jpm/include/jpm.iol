@@ -1,14 +1,4 @@
-constants
-{
-    FAULT_BAD_REQUEST = 400,
-    FAULT_INTERNAL = 500
-}
-
-type ErrorMessage: void {
-    .type: int
-    .message: string
-    .details?: undefined
-}
+include "jpm-utils" "utils.iol"
 
 type InitializationRequest: void {
     .name: string
@@ -22,5 +12,6 @@ interface IJPM {
         setContext(string)(void) throws ServiceFault(ErrorMessage),
         initializePackage(InitializationRequest)(void) 
             throws ServiceFault(ErrorMessage),
-        start(void)(void) throws ServiceFault(ErrorMessage)
+        start(void)(void) throws ServiceFault(ErrorMessage),
+        installDependencies(void)(void) throws ServiceFault(ErrorMessage)
 }

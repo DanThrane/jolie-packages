@@ -182,4 +182,8 @@ main
         println@Console(prettyCommand)()
         //exec@Exec(executionRequest)()
     }]
+
+    [installDependencies()() {
+        nullProcess
+    }]
 }

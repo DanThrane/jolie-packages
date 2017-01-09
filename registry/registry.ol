@@ -11,7 +11,7 @@ include "packages" "packages.iol"
 execution { concurrent }
 
 inputPort Registry {
-    Location: "socket://localhost:12345"
+    Location: "socket://localhost:12346"
     Protocol: sodep
     Interfaces: IRegistry
 }
@@ -376,7 +376,10 @@ main
         // TODO FIXME Keeping the entire package in RAM for the transfer is a 
         // big problem. Could easily just start sending a gigantic file and DOS 
         // the server easily. Is it even possible to send messages of limited 
-        // size in Jolie? 
+        // size in Jolie?
+
+        // Update: There is not. This is a clear security vulnerability. 
+        // This is present in all (Jolie) sodep and http servers
         packageName = req.package;
         PackageCheckIfExists;
 
