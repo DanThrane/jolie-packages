@@ -55,7 +55,7 @@ define CacheRegistryIndex {
     undef(_i);
 
     if (!found) {
-        registryIndex = #knownRegistries;
+        registryIndex = #knownRegistries.registries;
         knownRegistries.registries[registryIndex] = registryLocation;
         with (writeFileRequest) {
             .content << knownRegistries;
