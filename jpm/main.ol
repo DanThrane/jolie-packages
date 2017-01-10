@@ -8,7 +8,7 @@ include "registry" "registry.iol"
 include "semver" "semver.iol"
 include "jpm-utils" "utils.iol"
 include "jpm-downloader" "downloader.iol"
-include "exec.iol"
+include "execution" "execution.iol"
 
 execution { sequential }
 
@@ -341,6 +341,7 @@ main
         PackageRequired;
         nextArgument -> command[#command];
 
+        nextArgument = "joliedev";
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);
         if (packageExists) {
             nextArgument = "--pkg-folder";
@@ -363,16 +364,14 @@ main
         
         nextArgument = package.main;
 
-        executionRequest = "joliedev";
-        executionRequest.workingDirectory = global.path;
-        executionRequest.args -> command;
-        executionRequest.stdOutConsoleEnable = true;
+        executionRequest.directory = global.path;
+        executionRequest.suppress = false;
+        executionRequest.commands -> command;
         joinRequest.piece -> command;
         joinRequest.delimiter = "\n";
         join@StringUtils(joinRequest)(prettyCommand);
         println@Console(prettyCommand)();
-        exec@Exec(executionRequest)(out);
-        println@Console(out.stderr)()
+        execute@Execution(executionRequest)()
     }]
 
     [installDependencies()() {
