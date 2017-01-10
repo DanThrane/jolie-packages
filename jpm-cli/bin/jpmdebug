@@ -1,0 +1,12 @@
+#!/bin/bash
+curr=$PWD
+cd $JPM_CLI_HOME
+suspend=$1
+shift
+port=$1
+shift
+joliedebug $suspend $port --pkg-folder jpm_packages/ \
+    --main.jpm jpm_packages/jpm/main.ol \
+    --main.jpm-downloader jpm_packages/jpm-downloader/main.ol \
+    main.ol $curr $@
+cd $curr

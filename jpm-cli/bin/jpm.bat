@@ -1,0 +1,6 @@
+@ECHO OFF
+SETLOCAL ENABLEEXTENSIONS
+SET CURR=%cd%
+cd %JPM_CLI_HOME%
+jolie main.ol %CURR% %*
+cd %CURR%

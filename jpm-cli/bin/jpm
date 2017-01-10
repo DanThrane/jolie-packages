@@ -1,0 +1,8 @@
+#!/bin/bash
+curr=$PWD
+cd $JPM_CLI_HOME
+joliedev --pkg-folder jpm_packages/ \
+    --main.jpm jpm_packages/jpm/main.ol \
+    --main.jpm-downloader jpm_packages/jpm-downloader/main.ol \
+    main.ol $curr $@
+cd $curr

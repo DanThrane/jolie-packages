@@ -120,9 +120,9 @@ public class SemVer extends JavaService {
         builder.append(request.getFirstChild("minor").intValue());
         builder.append('.');
         builder.append(request.getFirstChild("patch").intValue());
-        if (request.hasChildren("label")) {
+        if (request.hasChildren("label") && request.getFirstChild("label").strValue().length() > 0) {
             builder.append('-');
-            builder.append(request.getFirstChild("label"));
+            builder.append(request.getFirstChild("label").strValue());
         }
         return builder.toString();
     }
