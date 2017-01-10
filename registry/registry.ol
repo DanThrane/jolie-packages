@@ -7,11 +7,12 @@ include "database.iol"
 include "time.iol"
 include "semver" "semver.iol"
 include "packages" "packages.iol"
+include "jpm-utils" "utils.iol"
 
 execution { concurrent }
 
 inputPort Registry {
-    Location: "socket://localhost:12346"
+    Location: "socket://localhost:12345"
     Protocol: sodep
     Interfaces: IRegistry
 }
@@ -65,6 +66,18 @@ define DatabaseInit {
                 description TEXT,
                 license     TEXT    NOT NULL,
                 FOREIGN KEY (packageName) REFERENCES package
+            );
+        ")(ret);
+
+        update@Database("
+            CREATE TABLE IF NOT EXISTS package_dependency (
+              packageName TEXT NOT NULL,
+              major       INT  NOT NULL,
+              minor       INT  NOT NULL,
+              patch       INT  NOT NULL,
+              dependency  TEXT NOT NULL,
+              version     TEXT NOT NULL,
+              PRIMARY KEY (packageName, major, minor, patch)
             );
         ")(ret);
 
@@ -277,6 +290,44 @@ define PackageInsertVersion {
 }
 
 /**
+ * @input package: Package
+ */
+define PackageInsertDependencies {
+    DatabaseConnect;
+    currDependency -> package.dependencies[i];
+    for (i = 0, i < #package.dependencies, i++) {
+        // TODO We cannot allow cross registry dependencies here! 
+        // Or can we. I am really not sure. For now let's assume that we 
+        // can't do cross-registry dependencies for published packages.
+
+        // It would however make sense for a privately published package to use
+        // packages from a default repository. But it really doesn't make sense
+        // the other way around.
+        insertQuery = "
+            INSERT INTO package_dependency
+            (packageName, major, minor, patch, dependency, version)
+            VALUES (:packageName, :major, :minor, :patch, :dependency, :version); 
+        ";
+        insertQuery.packageName = package.name;
+        insertQuery.major = package.version.major;
+        insertQuery.minor = package.version.minor;
+        insertQuery.patch = package.version.patch;
+
+        insertQuery.dependency = currDependency.name;
+        insertQuery.version = currDependency.version;
+        statements[#statements] << insertQuery
+    };
+
+    if (#statements > 0) {
+        transaction.statement -> statements;
+        executeTransaction@Database(transaction)(ret);
+        undef(statements);
+        undef(insertQuery);
+        undef(transaction)
+    }
+}
+
+/**
  * Returns a unique safe working name
  * @output temporaryName: string
  */
@@ -330,6 +381,32 @@ main
     [getPackageInfo(packageName)(res) {
         PackageGetInformation;
         res.packages -> packageInformation
+    }]
+
+    [query(request)(response) {
+        DatabaseConnect;
+        databaseQuery = "
+            SELECT
+              package.packageName,
+              package_versions.major,
+              package_versions.minor,
+              package_versions.patch,
+              package_versions.label,
+              package_versions.description,
+              package_versions.license
+            FROM
+              package, package_versions
+            WHERE
+              package.packageName LIKE '%' || :q || '%' AND
+              package_versions.packageName = package.packageName
+            GROUP BY package.packageName
+            ORDER BY
+              package_versions.major, package_versions.minor,
+              package_versions.patch;
+        ";
+        databaseQuery.q = request.query;
+        query@Database(databaseQuery)(databaseResponse);
+        response.results -> databaseResponse.row
     }]
 
     [download(req)(res) {
@@ -415,6 +492,7 @@ main
                         PackageCheckVersion;
                         if (isNewest) {
                             PackageInsertVersion;
+                            PackageInsertDependencies;
                             baseFolder = FOLDER_PACKAGES + FILE_SEP + package.name;
                             mkdir@File(baseFolder)();
                             rename@File({
@@ -440,6 +518,34 @@ main
         } else {
             res = false;
             res.message = "Package not found!"
+        }
+    }]
+
+    [getDependencies(request)(response) {
+        scope(s) {
+            install(SQLException =>
+                println@Console("SQLException in getDependencies!")();
+                value -> s.SQLException; DebugPrintValue
+            );
+            
+            DatabaseConnect;
+            dependencyQuery = "
+                SELECT
+                  dependency AS name, version
+                FROM
+                  package_dependency
+                WHERE
+                  packageName = :packageName AND
+                  major = :major AND
+                  minor = :minor AND
+                  patch = :patch;
+            ";
+            dependencyQuery.packageName = request.packageName;
+            dependencyQuery.major = request.version.major;
+            dependencyQuery.minor = request.version.minor;
+            dependencyQuery.patch = request.version.patch;
+            query@Database(dependencyQuery)(sqlResponse);
+            response.dependencies -> sqlResponse.row
         }
     }]
 }

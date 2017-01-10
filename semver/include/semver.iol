@@ -16,6 +16,15 @@ type SatisfiesVersionRequest: void {
     .range: string
 }
 
+type SemVerSortRequest: void {
+    .versions[1, *]: SemVer
+    .satisfying?: string
+}
+
+type SemVerSortResponse: void {
+    .versions[0, *]: SemVer
+}
+
 constants {
     VERSION_MAJOR = 1,
     VERSION_MINOR = 2,
@@ -30,7 +39,8 @@ interface ISemanticVersion {
         satisfies(SatisfiesVersionRequest)(bool),
         validatePartial(string)(bool),
         validateVersion(string)(bool),
-        convertToString(SemVer)(string)
+        convertToString(SemVer)(string),
+        sort(SemVerSortRequest)(SemVerSortResponse)
 }
 
 outputPort SemVer {

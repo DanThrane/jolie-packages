@@ -26,25 +26,27 @@ main
                 println@Console(InvalidArgumentFault.message)()
             );
 
+            packageName = args[0];
+
             println@Console("Creating .pkg file")();
             pkgRequest.zipLocation = "tmp";
-            pkgRequest.packageLocation = "../data/dummy_package";
+            pkgRequest.packageLocation = "../data/" + packageName;
             pack@Pkg(pkgRequest)();
 
             println@Console("Reading back temporary .pkg file")();
             readFile@File({
-                .filename = "tmp/dummy_package.pkg",
+                .filename = "tmp/" + packageName + ".pkg",
                 .format = "binary"
             })(payload);
 
             println@Console("Creating package")();
             createPkgReq << baseMessage;
-            createPkgReq.name = "dummy_package";
+            createPkgReq.name = packageName;
             createPackage@Registry(createPkgReq)(ignored);
 
             println@Console("Publishing new version")();
             publish@Registry({
-                .package = "dummy_package",
+                .package = packageName,
                 .payload = payload
             })(value);
             print_value

@@ -68,6 +68,9 @@ init
 main
 {
     [validate(request)(response) {
+        // TODO FIXME We shouldn't allow multiple dependencies with the same 
+        // name, even if they are from different registries
+        
         nextItem -> response.items[#response.items];
 
         scope (parsing) {

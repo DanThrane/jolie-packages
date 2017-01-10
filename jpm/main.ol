@@ -4,17 +4,20 @@ include "json_utils.iol"
 include "string_utils.iol"
 include "console.iol"
 include "packages" "packages.iol"
+include "registry" "registry.iol"
+include "semver" "semver.iol"
+include "jpm-utils" "utils.iol"
 
 execution { sequential }
 
 constants
 {
-    FOLDER_PACKAGES = "jpm_packages"
+    FOLDER_PACKAGES = "jpm_packages",
+    REGISTRY_PUBLIC = "socket://localhost:12345"
 }
 
 inputPort JPM {
-    Location: "socket://localhost:3333"
-    Protocol: sodep
+    Location: "local"
     Interfaces: IJPM
 }
 
@@ -22,6 +25,11 @@ outputPort Packages {
     Location: "socket://localhost:8888"
     Protocol: sodep
     Interfaces: IPackages
+}
+
+outputPort Registry {
+    Protocol: sodep
+    Interfaces: IRegistry
 }
 
 define PathRequired {
@@ -59,6 +67,11 @@ define PackageRequiredInFolder {
         faultInfo.message = "package.json has errors at " + folder;
         faultInfo.details -> report.items;
         throw(ServiceFault, faultInfo)
+    } else {
+        genericPackage.registries[#genericPackage.registries] << {
+            .name = "public",
+            .location = REGISTRY_PUBLIC
+        }
     }
 }
 
@@ -88,6 +101,101 @@ define PackageRequiredInDependency {
     undef(folder)
 }
 
+/**
+ * @input package: Package
+ * @input registryName: string
+ */
+define RegistrySetLocation {
+    _i = i;
+    found = false;
+    for (i = 0, i < #package.registries && !found, i++) {
+        if (package.registries[i].name == registryName) {
+            Registry.location = package.registries[i].location;
+            found = true
+        }
+    };
+    
+    if (!found) {
+        throw(ServiceFault, {
+            .type = FAULT_BAD_REQUEST,
+            .message = "Cannot find registry '" + registryName + "'"
+        })
+    };
+    
+    i = _i;
+    undef(_i)
+}
+
+/**
+ * @output resolvedDependencies: Map<String, SemVer>
+ */
+define DependencyTree {
+    PackageRequired;
+    // TODO Dependencies of dependencies
+
+    // It would be very nice if we could ask the registry for this information.
+    // This would require us to insert these into the database as we publish
+    // new versions.
+
+    // Alternatively we can download these as we figure them out, and then 
+    // simply read off the dependencies we get. This approach doesn't seem quite
+    // as elegant. But might prove to be easier.
+    currDependency -> package.dependencies[i];
+    for (i = 0, i < #package.dependencies, i++) {
+        registryName = currDependency.registry;
+        name = currDependency.name;
+        RegistrySetLocation;
+        getPackageInfo@Registry(name)(info);
+        if (#info.packages == 0) {
+            throw(ServiceFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Unable to resolve package '" + name + "'. " + 
+                    "No such package."            
+            })
+        } else {
+            resolved -> resolvedDependencies.(currDependency.name);
+            if (is_defined(resolved)) {
+                convertToString@SemVer(resolved)(versionString);
+                satisfies@SemVer({ 
+                    .version = versionString, 
+                    .range = currDependency.version 
+                })(versionSatisfied);
+                
+                if (!versionSatisfied) {
+                    throw(ServiceFault, {
+                        .type = FAULT_BAD_REQUEST,
+                        .message = "Unable to resolve package '" + name + 
+                            "'. Conflicting versions required."
+                    })
+                }
+            } else {
+                pkgInfo -> info.packages[j];
+                for (j = 0, j < #info.packages, j++) {
+                    nextIdx = allVersions[#allVersions];
+                    with (allVersions[nextIdx]) {
+                        .major = pkgInfo.major;
+                        .minor = pkgInfo.minor;
+                        .patch = pkgInfo.patch
+                    }
+                };
+                sortRequest.versions -> allVersions;
+                sortRequest.satisfying = currDependency.version;
+                sort@SemVer(sortRequest)(sortedVersions);
+                if (#sortedVersions.versions == 0) {
+                    throw(ServiceFault, {
+                        .type = FAULT_BAD_REQUEST,
+                        .message = "Unable to resolve pacakge '" + name + 
+                            "'. No version matches expression '" + 
+                            currDependency.version + "'"
+                    })
+                };
+                resolved << sortedVersions.versions[0];
+                undef(allVersions)
+            }
+        }
+    }
+}
+
 init
 {
     // Don't handle ServiceFaults just send them back to the invoker
@@ -106,6 +214,46 @@ main
             })
         };
         global.path = path
+    }]
+
+    [query(request)(response) {
+        scope (s) {
+            install(ServiceFault => hasPackage = false);
+            PackageRequired;
+            hasPackage = true
+        };
+        
+        registries << {
+            .name = "public",
+            .location = REGISTRY_PUBLIC
+        };
+
+        if (hasPackage) {
+            currRegistry -> package.registries[i];
+            for (i = 0, i < #package.registries, i++) {
+                registries[#registries] << currRegistry
+            }
+        };
+
+        scope (queryScope) {
+            install(IOException =>
+                throw(ServiceFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Unable to connect to registry '" + 
+                        currRegistry.name + "'"
+                })
+            );
+
+            queryRequest.query = request.query;
+            currRegistry -> registries[i];
+            for (i = 0, i < #registries, i++) {
+                Registry.location = currRegistry.location;
+                query@Registry(queryRequest)(registryResults);
+                nextIdx = #response.registries;
+                response.registries[nextIdx] << registryResults;
+                response.registries[nextIdx].name = currRegistry.name
+            }
+        }
     }]
 
     [initializePackage(request)() {
@@ -184,6 +332,8 @@ main
     }]
 
     [installDependencies()() {
-        nullProcess
+        DependencyTree;
+        println@Console("Got dependency tree:")();
+        value -> resolvedDependencies; DebugPrintValue
     }]
 }

@@ -6,10 +6,11 @@ import com.github.zafarkhaja.semver.expr.ExpressionParser;
 import jolie.runtime.FaultException;
 import jolie.runtime.JavaService;
 import jolie.runtime.Value;
+import jolie.runtime.ValueVector;
 import jolie.runtime.embedding.RequestResponse;
+import jolie.runtime.typing.TypeCastingException;
 
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
 
 public class SemVer extends JavaService {
     public static final String FAULT_INVALID_VERSION = "InvalidVersion";
@@ -55,6 +56,43 @@ public class SemVer extends JavaService {
     }
 
     @RequestResponse
+    public Value sort(Value request) throws FaultException {
+        ValueVector rawVersions = request.getChildren("versions");
+        String satisfying = request.hasChildren("satisfying") ?
+                request.getFirstChild("satisfying").strValue() : null;
+        List<Version> versions = new ArrayList<>();
+        for (Value v : rawVersions) {
+            requireChildren(v, "major", "minor", "patch");
+            int major = v.getFirstChild("major").intValue();
+            int minor = v.getFirstChild("minor").intValue();
+            int patch = v.getFirstChild("patch").intValue();
+            boolean label = v.hasChildren("label");
+            Version version = Version.forIntegers(major, minor, patch);
+            if (label) {
+                version = version.setBuildMetadata(v.getFirstChild("version").strValue());
+            }
+            if (satisfying == null || version.satisfies(satisfying)) {
+                versions.add(version);
+            }
+        }
+        Collections.sort(versions);
+        Value response = Value.create();
+        ValueVector output = response.getChildren("versions");
+        for (Version v : versions) {
+            Value versionValue = Value.create();
+            versionValue.getFirstChild("major").setValue(v.getMajorVersion());
+            versionValue.getFirstChild("minor").setValue(v.getMinorVersion());
+            versionValue.getFirstChild("patch").setValue(v.getPatchVersion());
+            String label = v.getBuildMetadata();
+            if (label != null && label.length() > 0) {
+                versionValue.getFirstChild("label").setValue(label);
+            }
+            output.add(versionValue);
+        }
+        return response;
+    }
+
+    @RequestResponse
     public String incrementVersion(Value request) throws FaultException {
         requireChildren(request, "type");
 
@@ -78,9 +116,9 @@ public class SemVer extends JavaService {
         requireChildren(request, "major", "minor", "patch");
         StringBuilder builder = new StringBuilder();
         builder.append(request.getFirstChild("major").intValue());
-        builder.append('-');
+        builder.append('.');
         builder.append(request.getFirstChild("minor").intValue());
-        builder.append('-');
+        builder.append('.');
         builder.append(request.getFirstChild("patch").intValue());
         if (request.hasChildren("label")) {
             builder.append('-');
