@@ -3,7 +3,9 @@ include "semver" "semver.iol"
 constants {
     VALIDATION_INFO = 0,
     VALIDATION_WARNING = 1,
-    VALIDATION_ERROR = 2
+    VALIDATION_ERROR = 2,
+    DEPENDENCY_TYPE_RUNTIME = 0,
+    DEPENDENCY_TYPE_INTERFACE = 1
 }
 
 type LicenseIdentifier: string
@@ -17,10 +19,13 @@ type Registry: void {
     .location: string
 }
 
+type DependencyType: int
+
 type Dependency: void {
     .name: string
     .version: SemVerExpression
     .registry: string
+    .type: DependencyType
 }
 
 type Package: void {

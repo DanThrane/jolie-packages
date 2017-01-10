@@ -77,6 +77,7 @@ define DatabaseInit {
               patch       INT  NOT NULL,
               dependency  TEXT NOT NULL,
               version     TEXT NOT NULL,
+              type        INT  NOT NULL,
               PRIMARY KEY (packageName, major, minor, patch)
             );
         ")(ret);
@@ -305,13 +306,15 @@ define PackageInsertDependencies {
         // the other way around.
         insertQuery = "
             INSERT INTO package_dependency
-            (packageName, major, minor, patch, dependency, version)
-            VALUES (:packageName, :major, :minor, :patch, :dependency, :version); 
+            (packageName, major, minor, patch, dependency, type, version)
+            VALUES (:packageName, :major, :minor, :patch, :dependency, 
+                    :type, :version); 
         ";
         insertQuery.packageName = package.name;
         insertQuery.major = package.version.major;
         insertQuery.minor = package.version.minor;
         insertQuery.patch = package.version.patch;
+        insertQuery.type = currDependency.type;
 
         insertQuery.dependency = currDependency.name;
         insertQuery.version = currDependency.version;
@@ -531,7 +534,7 @@ main
             DatabaseConnect;
             dependencyQuery = "
                 SELECT
-                  dependency AS name, version
+                  dependency AS name, version, type
                 FROM
                   package_dependency
                 WHERE
@@ -545,6 +548,9 @@ main
             dependencyQuery.minor = request.version.minor;
             dependencyQuery.patch = request.version.patch;
             query@Database(dependencyQuery)(sqlResponse);
+            for (i = 0, i < sqlResponse.row, i++) {
+                sqlResponse.row[i].type = int(sqlResponse.row[i].type)
+            };
             response.dependencies -> sqlResponse.row
         }
     }]

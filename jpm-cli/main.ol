@@ -40,14 +40,15 @@ Usage: jpm <command> <arguments>
 Available commands:
 -------------------
 
-  - init        Initializes a package in the current directory
-  - install     Installs the dependencies, which are located in package.json
-  - status      Prints out JPM's knowledge of the package placed in the 
-                current directory
-  - publish     Publishes the package in the current directory to the 
-                central repository.
-  - search <q>  Searches the local database for a given package
-  - help        This command
+  - init            Initializes a package in the current directory
+  - install         Installs the dependencies, which are located in package.json
+  - status          Prints out JPM's knowledge of the package placed in the 
+                    current directory
+  - publish         Publishes the package in the current directory to the 
+                    central repository.
+  - search <q>      Searches the local database for a given package
+  - help            This command
+  - start <args>    Starts this package
 ")()
     } else if (command == "init") {
         nullProcess
@@ -82,8 +83,9 @@ Available commands:
             toTextTable@Tables(tablesRequest)(table);
             println@Console(table)()
         }
+    } else if (command == "start") {
+        start@JPM()()
     } else {
         println@Console("Unknown command '" + command + "'")()
     }
-
 }

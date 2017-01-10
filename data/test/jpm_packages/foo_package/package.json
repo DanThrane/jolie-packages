@@ -1,8 +1,0 @@
-{
-    "name": "foo_package",
-    "version": "1.0.0",
-    "license": "MIT",
-    "private": false,
-    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
-    "dependencies": []
-}

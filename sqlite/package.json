@@ -1,5 +1,6 @@
 {
     "name": "sqlite",
     "description": "Database driver support for 'sqlite'",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
     "version": "1.0.0"
 }

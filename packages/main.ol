@@ -4,6 +4,7 @@ include "string_utils.iol"
 include "console.iol"
 include "json_utils.iol"
 include "semver" "semver.iol"
+include "jpm-utils" "utils.iol"
 
 execution { concurrent }
 
@@ -177,6 +178,12 @@ main
             };
 
             // Validate authors
+            if (!is_defined(file.authors)) {
+                nextItem << {
+                    .type = VALIDATION_ERROR,
+                    .message = "'authors' field is not optional"
+                }
+            };
             validateAuthors@ValidationUtil(file)(authorsResp);
             for (i = 0, i < #authorsResp.items, i++) {
                 nextItem << authorsResp.items[i]
@@ -320,6 +327,24 @@ main
                             }
                         }
                     };
+
+                    // Dependency types
+                    if (is_defined(dependency.type)) {
+                        if (dependency.type == "runtime") {
+                            packageDependency.type = DEPENDENCY_TYPE_RUNTIME
+                        } else if (dependency.type == "interface") {
+                            packageDependency.type = DEPENDENCY_TYPE_INTERFACE
+                        } else {
+                            nextItem << {
+                                .type = VALIDATION_ERROR,
+                                .message = "'dependencies[" + i +"].type' is " + 
+                                    "unknown'"
+                            }
+                        }
+                    } else {
+                        packageDependency.type = DEPENDENCY_TYPE_INTERFACE
+                    };
+
                     packageBuilder.dependencies[#packageBuilder.dependencies] << packageDependency
                 }
             };

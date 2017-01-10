@@ -5,6 +5,10 @@
     "license": "MIT",
     "authors": "Dan Thrane",
     "dependencies": [
-        { "name": "dummy_package", "version": ">=4.0.0" }
+        { 
+            "name": "dummy_package", 
+            "version": ">=4.0.0",
+            "type": "interface"
+        }
     ]
 }

@@ -81,6 +81,7 @@ type RegDependencyResponse: void {
     .dependencies[0, *]: void {
         .name: string
         .version: string
+        .type: int
     }
 }
 

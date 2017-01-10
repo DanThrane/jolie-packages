@@ -8,6 +8,7 @@ include "registry" "registry.iol"
 include "semver" "semver.iol"
 include "jpm-utils" "utils.iol"
 include "jpm-downloader" "downloader.iol"
+include "exec.iol"
 
 execution { sequential }
 
@@ -75,7 +76,7 @@ define PackageRequiredInFolder {
     if (report.hasErrors) {
         faultInfo.type = FAULT_BAD_REQUEST;
         faultInfo.message = "package.json has errors at " + folder;
-        faultInfo.details -> report.items;
+        faultInfo.details << report.items;
         throw(ServiceFault, faultInfo)
     } else {
         genericPackage.registries[#genericPackage.registries] << {
@@ -142,6 +143,8 @@ define RegistrySetLocation {
 define DependencyTree {
     PackageRequired;
     
+    debug = 0;
+    println@Console(debug++)();
     dependencyStack << package.dependencies;
     currDependency -> dependencyStack[0];
     while (#dependencyStack > 0) {
@@ -160,6 +163,7 @@ define DependencyTree {
                     "No such package."            
             })
         };
+        println@Console(debug++)();
 
         resolved -> resolvedDependencies.(currDependency.name);
         if (is_defined(resolved)) {
@@ -180,6 +184,7 @@ define DependencyTree {
         } else {
             // We need to find the best matching version.
             // Start by finding all versions of this package
+            println@Console(debug++)();
             pkgInfo -> info.packages[j];
             for (j = 0, j < #info.packages, j++) {
                 with (version) {
@@ -201,23 +206,29 @@ define DependencyTree {
                         currDependency.version + "'"
                 })
             };
+            println@Console(debug++)();
             // Insert resolved dependency
             with (information) {
                 .version << sortedVersions.versions[0];
                 .registryLocation = Registry.location;
                 .registryName = registryName
             };
+            println@Console(debug++)();
             resolved << information;
             // Insert dependencies of this dependency on the stack
-            dependenciesRequest.packageName = name;
-            dependenciesRequest.version << sortedVersions.versions[0];
-            getDependencies@Registry(dependenciesRequest)(newDependencies);
-            for (i = 0, i < #newDependencies.dependencies, i++) {
-                item << newDependencies.dependencies[i];
-                item.registry = registryName;
-                dependencyStack[#dependencyStack] << item;
-                undef(item)
+            // We only do this if we are a runtime dependency.
+            if (currDependency.type == DEPENDENCY_TYPE_RUNTIME) {
+                dependenciesRequest.packageName = name;
+                dependenciesRequest.version << sortedVersions.versions[0];
+                getDependencies@Registry(dependenciesRequest)(newDependencies);
+                for (i = 0, i < #newDependencies.dependencies, i++) {
+                    item << newDependencies.dependencies[i];
+                    item.registry = registryName;
+                    dependencyStack[#dependencyStack] << item;
+                    undef(item)
+                }
             };
+            println@Console(debug++)();
             undef(allVersions)
         };
 
@@ -330,7 +341,6 @@ main
         PackageRequired;
         nextArgument -> command[#command];
 
-        nextArgument = "joliedev";
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);
         if (packageExists) {
             nextArgument = "--pkg-folder";
@@ -351,13 +361,18 @@ main
             undef(dependencyPackage)
         };
         
+        nextArgument = package.main;
+
+        executionRequest = "joliedev";
         executionRequest.workingDirectory = global.path;
         executionRequest.args -> command;
+        executionRequest.stdOutConsoleEnable = true;
         joinRequest.piece -> command;
-        joinRequest.delimiter = " ";
+        joinRequest.delimiter = "\n";
         join@StringUtils(joinRequest)(prettyCommand);
-        println@Console(prettyCommand)()
-        //exec@Exec(executionRequest)()
+        println@Console(prettyCommand)();
+        exec@Exec(executionRequest)(out);
+        println@Console(out.stderr)()
     }]
 
     [installDependencies()() {
