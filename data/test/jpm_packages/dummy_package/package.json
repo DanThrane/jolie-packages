@@ -1,0 +1,11 @@
+{
+	"name": "dummy_package",
+	"version": "4.22.2",
+	"private": false,
+	"license": "MIT",
+	"authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+	"main": "main.ol",
+	"dependencies": [
+            { "name": "foo_package", "version": "1.0.X" }
+	]
+}

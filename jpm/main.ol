@@ -7,6 +7,7 @@ include "packages" "packages.iol"
 include "registry" "registry.iol"
 include "semver" "semver.iol"
 include "jpm-utils" "utils.iol"
+include "jpm-downloader" "downloader.iol"
 
 execution { sequential }
 
@@ -30,6 +31,15 @@ outputPort Packages {
 outputPort Registry {
     Protocol: sodep
     Interfaces: IRegistry
+}
+
+outputPort Downloader {
+    Interfaces: IDownloader
+}
+
+embedded {
+    JoliePackage:
+        "jpm-downloader" in Downloader {}
 }
 
 define PathRequired {
@@ -154,7 +164,7 @@ define DependencyTree {
         resolved -> resolvedDependencies.(currDependency.name);
         if (is_defined(resolved)) {
             // Check if our expression matches the already selected version
-            convertToString@SemVer(resolved)(versionString);
+            convertToString@SemVer(resolved.version)(versionString);
             satisfies@SemVer({ 
                 .version = versionString, 
                 .range = currDependency.version 
@@ -192,7 +202,12 @@ define DependencyTree {
                 })
             };
             // Insert resolved dependency
-            resolved << sortedVersions.versions[0];
+            with (information) {
+                .version << sortedVersions.versions[0];
+                .registryLocation = Registry.location;
+                .registryName = registryName
+            };
+            resolved << information;
             // Insert dependencies of this dependency on the stack
             dependenciesRequest.packageName = name;
             dependenciesRequest.version << sortedVersions.versions[0];
@@ -348,6 +363,29 @@ main
     [installDependencies()() {
         DependencyTree;
         println@Console("Got dependency tree:")();
-        value -> resolvedDependencies; DebugPrintValue
+        value -> resolvedDependencies; DebugPrintValue;
+
+        dependencyInformation -> resolvedDependencies.(dependencyName);
+        foreach (dependencyName : resolvedDependencies) {
+            scope (installation) {
+                install(DownloaderFault => 
+                    println@Console("Failed to download dependency '" + 
+                            dependencyName + "'")();
+                    value -> installation.DownloaderFault; DebugPrintValue
+                );
+
+                with (installRequest) {
+                    .major = dependencyInformation.version.major;
+                    .minor = dependencyInformation.version.minor;
+                    .patch = dependencyInformation.version.patch;
+                    .name = dependencyName;
+                    .registryLocation = dependencyInformation.registryLocation;
+                    .targetPackage = global.path
+                };
+                value -> installRequest; DebugPrintValue;
+                installDependency@Downloader(installRequest)();
+                println@Console(dependencyName + " has been installed!")()
+            }
+        }
     }]
 }
