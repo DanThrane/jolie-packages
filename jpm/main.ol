@@ -171,12 +171,12 @@ define DependencyTree {
             } else {
                 pkgInfo -> info.packages[j];
                 for (j = 0, j < #info.packages, j++) {
-                    nextIdx = allVersions[#allVersions];
-                    with (allVersions[nextIdx]) {
+                    with (version) {
                         .major = pkgInfo.major;
                         .minor = pkgInfo.minor;
                         .patch = pkgInfo.patch
-                    }
+                    };
+                    allVersions[#allVersions] << version
                 };
                 sortRequest.versions -> allVersions;
                 sortRequest.satisfying = currDependency.version;
@@ -184,7 +184,7 @@ define DependencyTree {
                 if (#sortedVersions.versions == 0) {
                     throw(ServiceFault, {
                         .type = FAULT_BAD_REQUEST,
-                        .message = "Unable to resolve pacakge '" + name + 
+                        .message = "Unable to resolve package '" + name + 
                             "'. No version matches expression '" + 
                             currDependency.version + "'"
                     })
