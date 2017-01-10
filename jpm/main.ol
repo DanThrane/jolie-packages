@@ -131,20 +131,17 @@ define RegistrySetLocation {
  */
 define DependencyTree {
     PackageRequired;
-    // TODO Dependencies of dependencies
-
-    // It would be very nice if we could ask the registry for this information.
-    // This would require us to insert these into the database as we publish
-    // new versions.
-
-    // Alternatively we can download these as we figure them out, and then 
-    // simply read off the dependencies we get. This approach doesn't seem quite
-    // as elegant. But might prove to be easier.
-    currDependency -> package.dependencies[i];
-    for (i = 0, i < #package.dependencies, i++) {
+    
+    dependencyStack << package.dependencies;
+    currDependency -> dependencyStack[0];
+    while (#dependencyStack > 0) {
+        println@Console("Looking at the next dependency:")();
+        value -> currDependency; DebugPrintValue;
         registryName = currDependency.registry;
         name = currDependency.name;
         RegistrySetLocation;
+        
+        // Lookup package information from the registry
         getPackageInfo@Registry(name)(info);
         if (#info.packages == 0) {
             throw(ServiceFault, {
@@ -152,47 +149,64 @@ define DependencyTree {
                 .message = "Unable to resolve package '" + name + "'. " + 
                     "No such package."            
             })
-        } else {
-            resolved -> resolvedDependencies.(currDependency.name);
-            if (is_defined(resolved)) {
-                convertToString@SemVer(resolved)(versionString);
-                satisfies@SemVer({ 
-                    .version = versionString, 
-                    .range = currDependency.version 
-                })(versionSatisfied);
-                
-                if (!versionSatisfied) {
-                    throw(ServiceFault, {
-                        .type = FAULT_BAD_REQUEST,
-                        .message = "Unable to resolve package '" + name + 
-                            "'. Conflicting versions required."
-                    })
-                }
-            } else {
-                pkgInfo -> info.packages[j];
-                for (j = 0, j < #info.packages, j++) {
-                    with (version) {
-                        .major = pkgInfo.major;
-                        .minor = pkgInfo.minor;
-                        .patch = pkgInfo.patch
-                    };
-                    allVersions[#allVersions] << version
-                };
-                sortRequest.versions -> allVersions;
-                sortRequest.satisfying = currDependency.version;
-                sort@SemVer(sortRequest)(sortedVersions);
-                if (#sortedVersions.versions == 0) {
-                    throw(ServiceFault, {
-                        .type = FAULT_BAD_REQUEST,
-                        .message = "Unable to resolve package '" + name + 
-                            "'. No version matches expression '" + 
-                            currDependency.version + "'"
-                    })
-                };
-                resolved << sortedVersions.versions[0];
-                undef(allVersions)
+        };
+
+        resolved -> resolvedDependencies.(currDependency.name);
+        if (is_defined(resolved)) {
+            // Check if our expression matches the already selected version
+            convertToString@SemVer(resolved)(versionString);
+            satisfies@SemVer({ 
+                .version = versionString, 
+                .range = currDependency.version 
+            })(versionSatisfied);
+            
+            if (!versionSatisfied) {
+                throw(ServiceFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Unable to resolve package '" + name + 
+                        "'. Conflicting versions required."
+                })
             }
-        }
+        } else {
+            // We need to find the best matching version.
+            // Start by finding all versions of this package
+            pkgInfo -> info.packages[j];
+            for (j = 0, j < #info.packages, j++) {
+                with (version) {
+                    .major = pkgInfo.major;
+                    .minor = pkgInfo.minor;
+                    .patch = pkgInfo.patch
+                };
+                allVersions[#allVersions] << version
+            };
+            // Find the best match for our version expression
+            sortRequest.versions -> allVersions;
+            sortRequest.satisfying = currDependency.version;
+            sort@SemVer(sortRequest)(sortedVersions);
+            if (#sortedVersions.versions == 0) {
+                throw(ServiceFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Unable to resolve package '" + name + 
+                        "'. No version matches expression '" + 
+                        currDependency.version + "'"
+                })
+            };
+            // Insert resolved dependency
+            resolved << sortedVersions.versions[0];
+            // Insert dependencies of this dependency on the stack
+            dependenciesRequest.packageName = name;
+            dependenciesRequest.version << sortedVersions.versions[0];
+            getDependencies@Registry(dependenciesRequest)(newDependencies);
+            for (i = 0, i < #newDependencies.dependencies, i++) {
+                item << newDependencies.dependencies[i];
+                item.registry = registryName;
+                dependencyStack[#dependencyStack] << item;
+                undef(item)
+            };
+            undef(allVersions)
+        };
+
+        undef(dependencyStack[0])
     }
 }
 

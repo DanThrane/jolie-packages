@@ -16,7 +16,7 @@ define QueryTest {
 }
 
 define DependencyTreeTest {
-    setContext@JPM("/home/dan/projects/jolie-packages/data/dummy_package")();
+    setContext@JPM("/home/dan/projects/jolie-packages/data/test")();
     installDependencies@JPM()()
 }
 

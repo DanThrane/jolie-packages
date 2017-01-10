@@ -1,0 +1,10 @@
+{
+    "name": "test",
+    "version": "0.1.0",
+    "private": true,
+    "license": "MIT",
+    "authors": "Dan Thrane",
+    "dependencies": [
+        { "name": "dummy_package", "version": ">=4.0.0" }
+    ]
+}
