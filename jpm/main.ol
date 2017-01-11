@@ -113,15 +113,25 @@ define PackageRequiredInDependency {
 }
 
 /**
- * @input package: Package
+ * @input package?: Package
  * @input registryName: string
  */
 define RegistrySetLocation {
     _i = i;
     found = false;
-    for (i = 0, i < #package.registries && !found, i++) {
-        if (package.registries[i].name == registryName) {
-            Registry.location = package.registries[i].location;
+
+    if (is_defined(package)) {
+        registries << package.registries
+    };
+
+    registries[#registries] << {
+        .name = "public",
+        .location = REGISTRY_PUBLIC
+    };
+
+    for (i = 0, i < #registries && !found, i++) {
+        if (registries[i].name == registryName) {
+            Registry.location = registries[i].location;
             found = true
         }
     };
@@ -400,6 +410,59 @@ main
                 installDependency@Downloader(installRequest)();
                 println@Console(dependencyName + " has been installed!")()
             }
+        }
+    }]
+
+    [authenticate(req)(token) {
+        scope (s) {
+            install(RegistryFault => throw(ServiceFault, s.RegistryFault));
+
+            registryName = "public";
+            if (is_defined(req.registry)) {
+                registryName = req.registry
+            };
+            RegistrySetLocation;
+            authenticate@Registry({ 
+                .username = req.username, 
+                .password = req.password 
+            })(token)
+        }
+    }]
+
+    [register(req)(token) {
+        scope (s) {
+            install(RegistryFault => throw(ServiceFault, s.RegistryFault));
+
+            registryName = "public";
+            if (is_defined(req.registry)) registryName = req.registry;
+            RegistrySetLocation;
+            register@Registry({
+                .username = req.username,
+                .password = req.password
+            })(token)
+        }
+    }]
+
+    [whoami(req)(res) {
+        scope (s) {
+            install(RegistryFault => throw(ServiceFault, s.RegistryFault));
+            registryName = "public";
+            if (is_defined(req.registry)) registryName = req.registry;
+            RegistrySetLocation;
+            whoami@Registry({ .token = req.token })(res)
+        }
+    }]
+
+    [logout(req)(res) {
+        scope (s) {
+            install(RegistryFault => throw(ServiceFault, s.RegistryFault));
+
+            registryName = "public";
+            if (is_defined(req.registry)) registryName = req.registry;
+            RegistrySetLocation;
+            logoutRequest << { .token = req.token };
+            value -> logoutRequest; DebugPrintValue;
+            logout@Registry(logoutRequest)()
         }
     }]
 }

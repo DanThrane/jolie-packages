@@ -85,7 +85,43 @@ Available commands:
         }
     } else if (command == "start") {
         start@JPM()()
-    } else {
+    } else if (command == "login") {
+        if (#args < 4) {
+            // TODO Should read from console
+            println@Console("Usage: jpm login <username> <password> [registry]")()
+        } else {
+            authenticationRequest.username = args[2];
+            authenticationRequest.password = args[3];
+            if (#args == 5) {
+                authenticationRequest.registry = args[4]
+            };
+            value -> authenticationRequest; DebugPrintValue;
+            authenticate@JPM(authenticationRequest)(token);
+            println@Console(token)()
+        }
+    } else if (command == "register") {
+        if (#args < 4) {
+            println@Console("Usage: jpm register <username> <password> [registry]")()
+        } else {
+            registrationRequest.username = args[2];
+            registrationRequest.password = args[3];
+            if (#args == 5) {
+                registrationRequest.registry = args[4]
+            };
+            register@JPM(registrationRequest)(token);
+            println@Console(token)()
+        }
+    } else if (command == "logout") {
+        logoutRequest.token = "5f0433e5-d4b0-4080-8d52-73841e8a9caf";
+        if (#args == 3) {
+            logoutRequest.registry = args[2]
+        };
+        logout@JPM(logoutRequest)()
+    } else if (command == "whoami") {
+        whoami@JPM({ .token = "f0e003e3-4405-410f-b416-ff07d619dd3e" })(res);
+        println@Console(res)()
+    }
+    else {
         println@Console("Unknown command '" + command + "'")()
     }
 }

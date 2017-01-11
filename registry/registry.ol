@@ -8,6 +8,7 @@ include "time.iol"
 include "semver" "semver.iol"
 include "packages" "packages.iol"
 include "jpm-utils" "utils.iol"
+include "authorization" "authorization.iol"
 
 execution { concurrent }
 
@@ -21,6 +22,12 @@ outputPort Packages {
     Location: "socket://localhost:8888"
     Protocol: sodep
     Interfaces: IPackages
+}
+
+outputPort Authorization {
+    Location: "socket://localhost:44444"
+    Protocol: sodep
+    Interfaces: IAuthorization
 }
 
 constants {
@@ -345,6 +352,7 @@ define GetSafeWorkingName {
 
 init
 {
+    install(RegistryFault => nullProcess);
     getFileSeparator@File()(FILE_SEP);
     FOLDER_PACKAGES = "data" + FILE_SEP + "packages";
     FOLDER_WORK = "data" + FILE_SEP + "work";
@@ -358,8 +366,50 @@ init
 main
 {
     [authenticate(req)(res) {
-        res = true;
-        res.token = new
+        // TODO We need some clear rules on usernames and passwords. 
+        // We need to be sure that a maliciously crafted username won't do any
+        // damage in the authorization system.
+        scope (s) {
+            install(AuthorizationFault =>
+                throw(RegistryFault, s.AuthorizationFault)
+            );
+
+            authenticate@Authorization(req)(res)
+        }
+    }]
+
+    [register(req)(res) {
+        scope (s) {
+            install(AuthorizationFault => 
+                throw(RegistryFault, s.AuthorizationFault)
+            );
+            register@Authorization(req)(res)
+        };
+        groupName = "users." + req.username;
+        createGroup@Authorization({ .groupName = groupName })();
+        addGroupMembers@Authorization({ 
+            .groupName = groupName,
+            .users[0] = req.username
+        })()
+        // TODO Would be nice if we had default group rights
+    }]
+
+    [whoami(req)(res) {
+        scope (s) {
+            validate@Authorization(req)(out);
+            if (!out) {
+                throw(RegistryFault, {
+                    .type = 0,
+                    .message = "Not authorized"
+                })
+            };
+            res = out.username
+        }
+    }]
+
+    [logout(req)(res) {
+        println@Console("Invalidating token: " + req.token)();
+        invalidate@Authorization(req.token)()
     }]
 
     [createPackage(req)(res) {

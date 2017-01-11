@@ -1,5 +1,6 @@
 {
     "name": "jpm-utils",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
     "version": "0.1.0",
     "private": false,
     "license": "MIT"

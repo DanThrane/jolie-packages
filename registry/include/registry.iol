@@ -1,5 +1,6 @@
 include "packages" "packages.iol"
 include "semver" "semver.iol"
+include "jpm-utils" "utils.iol"
 
 // Utility types
 type ServiceMessage: bool {
@@ -23,19 +24,25 @@ type AuthenticationRequest: void {
     .password: string
 }
 
-type AuthenticationResponse: bool {
-    .token: string
-}
+type AuthenticationResponse: string
 
 type RegistrationRequest: void {
     .username: string
     .password: string
 }
-type RegistrationResponse: ServiceMessage
+type RegistrationResponse: string
 
 type PublishRequest: void {
     .package: string
     .payload: raw
+}
+
+type WhoamiRequest: void {
+    .token: string
+}
+
+type RegistryLogOutRequest: void {
+    .token: string
 }
 
 type PublishResponse: ServiceMessage
@@ -87,14 +94,18 @@ type RegDependencyResponse: void {
 
 interface IRegistry {
     RequestResponse:
-        authenticate(AuthenticationRequest)(AuthenticationResponse),
-        register(RegistrationRequest)(RegistrationResponse),
+        authenticate(AuthenticationRequest)(AuthenticationResponse)
+            throws RegistryFault(ErrorMessage),
+        register(RegistrationRequest)(RegistrationResponse)
+            throws RegistryFault(ErrorMessage),
+        whoami(WhoamiRequest)(string)
+            throws RegistryFault(ErrorMessage),
+        logout(RegistryLogOutRequest)(void),
         publish(PublishRequest)(PublishResponse),
         createPackage(CreatePackageRequest)(CreatePackageResponse),
         getPackageInfo(GetPackageRequest)(GetPackageResponse),
         getPackageList(GetPackageListRequest)(GetPackageListResponse),
         download(DownloadRequest)(DownloadResponse),
         query(RegistryQueryRequest)(RegistryQueryResponse),
-        getDependencies(RegDependencyRequest)(RegDependencyResponse),
-        logout(void)(void)
+        getDependencies(RegDependencyRequest)(RegDependencyResponse)
 }

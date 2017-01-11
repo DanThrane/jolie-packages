@@ -10,5 +10,6 @@
         { "name": "pkg", "version": "*" },
         { "name": "semver", "version": "*" },
         { "name": "sqlite", "version": "*" },
+        { "name": "authorization", "version": "*", "type": "interface" }
     ]
 }

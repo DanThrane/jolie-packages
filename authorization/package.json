@@ -1,0 +1,24 @@
+{
+    "name": "authorization",
+    "description": "An authorization service",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "main": "main.ol",
+    "version": "1.0.0",
+    "dependencies": [
+        {
+            "name": "jpm-utils",
+            "version": "*",
+            "type": "runtime"
+        },
+        {
+            "name": "sqlite",
+            "version": "*",
+            "type": "runtime"
+        },
+        {
+            "name": "bcrypt",
+            "version": "*",
+            "type": "runtime"
+        }
+    ]
+}
