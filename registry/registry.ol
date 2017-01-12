@@ -35,7 +35,8 @@ constants {
     DATABASE_PASSWORD = "",
     DATABASE_HOST = "",
     DATABASE_BASE = "/home/dan/registry.db",
-    DATABASE_DRIVER = "sqlite"
+    DATABASE_DRIVER = "sqlite",
+    FRESH_TOKEN = 1000 * 60
 }
 
 define DatabaseConnect {
@@ -348,6 +349,139 @@ define GetSafeWorkingName {
         global.counter = global.counter + 1
     };
     temporaryName = time + "_" + suffix
+}
+
+/**
+ * @input token: string
+ * @input revalidate?: bool = false
+ * @output currentUser: string
+ * @throws RegistryFault when not authorized
+ */
+define UserGet {
+    if (!is_defined(revalidate)) revalidate = false;
+    validationRequest.token = token;
+    if (revalidate) validationRequest.maxAge = FRESH_TOKEN;
+    validate@Authorization(validationRequest)(validationResponse);
+    if (!validationResponse) {
+        throw(RegistryFault, {
+            .type = FAULT_BAD_REQUEST,
+            .message = "Not authorized"
+        })
+    };
+    currentUser = validationResponse.username;
+
+    undef(validationRequest);
+    undef(validationResponse)
+}
+
+/**
+ * @input currentUser: string
+ * @output singletonGroupName: string
+ */
+define GroupSingletonName {
+    singletonGroupName = "users." + currentUser
+}
+
+/**
+ * Creates a new group with name `groupName`. The `currentUser` will 
+ * automatically be added to this group.
+ * 
+ * @input token: string
+ * @input groupName: string
+ * @output currentUser: string
+ */
+define GroupCreate {
+    scope (s) {
+        install(AuthorizationFault =>
+            // TODO For now we just rethrow, but we should probably handle 
+            // this a bit better.
+            throw(RegistryFault, s.AuthorizationFault)
+        );
+        UserGet;
+        createGroup@Authorization({ .groupName = groupName })();
+        addGroupMembers@Authorization({
+            .groupName = groupName,
+            .users[0] = currentUser
+        })();
+        GroupSingletonName;
+        changeGroupRights@Authorization({
+            .groupName = singletonGroupName,
+            .change[0].key = "group." + groupName,
+            .change[0].right = "super",
+            .change[0].grant = true
+        })()
+    }
+}
+
+
+/**
+ * @input token: string
+ * @input groupName: string
+ */
+define GroupRequireSuperPrivileges {
+    hasRights@AuthorizationFault({
+        .token = token,
+        .key = "group." + groupName,
+        .right = "super"
+    })(hasSuperPrivileges);
+
+    if (!hasSuperPrivileges) {
+        throw(RegistryFault, {
+            .type = FAULT_BAD_REQUEST,
+            .message = "Not authorized to add members"
+        })
+    }
+}
+
+/**
+ * @input token: string
+ * @input groupName: string
+ * @input member: string
+ */
+define GroupAddMember {
+    scope (s) {
+        install(AuthorizationFault =>
+            throw(RegistryFault, s.AuthorizationFault)
+        );      
+        GroupRequireSuperPrivileges;
+
+        // TODO Check if member even exists!
+        addGroupMembers@Authorization({
+            .groupName = groupName,
+            .users[0] = member
+        })()
+    }
+}
+
+/**
+ * @input token: string
+ * @input groupName: string
+ * @input member: string
+ */
+define GroupeRemoveMember {
+    scope (s) {
+        install(AuthorizationFault =>
+            throw(RegistryFault, s.AuthorizationFault)
+        );
+
+        GroupRequireSuperPrivileges;
+        removeGroupMember@Authorization({
+            .groupName = groupName,
+            .users[0] = member
+        })();
+        // We need to strip rights associated with group too
+    }
+}
+
+define GroupTransferOwnership {
+    scope (s) {
+        install(AuthorizationFault =>
+            throw(RegistryFault, s.AuthorizationFault)
+        );
+
+        GroupRequireSuperPrivileges;
+
+    }
 }
 
 init
