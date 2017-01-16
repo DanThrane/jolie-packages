@@ -353,6 +353,10 @@ main
 
         nextArgument = "joliedev";
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);
+
+        nextArgument = "--pkg-self";
+        nextArgument = package.name;
+
         if (packageExists) {
             nextArgument = "--pkg-folder";
             nextArgument = FOLDER_PACKAGES
