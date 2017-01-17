@@ -1,8 +1,10 @@
 include "console.iol"
+include "runtime.iol"
 include "jpm" "jpm.iol"
 include "jpm-utils" "utils.iol"
 include "tables" "tables.iol"
 include "semver" "semver.iol"
+include "console-ui" "console_ui.iol"
 
 outputPort JPM {
     Interfaces: IJPM
@@ -13,20 +15,15 @@ embedded {
         "jpm" in JPM {} // TODO FIXME bug in interpreter. Cfg should be optional
 }
 
-define QueryTest {
-    query@JPM({ .query = "package" })(results);
-    value -> results; DebugPrintValue
-}
-
-define DependencyTreeTest {
-    setContext@JPM("/home/dan/projects/jolie-packages/data/test")();
-    installDependencies@JPM()()
-}
-
 main {
     install(ServiceFault =>
         println@Console("An error has occoured!")();
         value -> main.ServiceFault; DebugPrintValue
+    );
+
+    install(CLIFault =>
+        println@Console("Error:")();
+        value -> main.CLIFault; DebugPrintValue
     );
     
     setContext@JPM(args[0])();
@@ -49,13 +46,14 @@ Available commands:
   - search <q>      Searches the local database for a given package
   - help            This command
   - start <args>    Starts this package
+  - cache <cmd>     Cache sub command
 ")()
     } else if (command == "init") {
         nullProcess
     } else if (command == "install") {
         installDependencies@JPM()()
     } else if (command == "publish") {
-        nullProcess
+        publish@JPM()()
     } else if (command == "search") {
         query -> args[2];
         query@JPM({ .query = query })(results);
@@ -86,40 +84,64 @@ Available commands:
     } else if (command == "start") {
         start@JPM()()
     } else if (command == "login") {
-        if (#args < 4) {
-            // TODO Should read from console
-            println@Console("Usage: jpm login <username> <password> [registry]")()
-        } else {
+        if (#args >= 4) {
             authenticationRequest.username = args[2];
             authenticationRequest.password = args[3];
             if (#args == 5) {
                 authenticationRequest.registry = args[4]
-            };
-            value -> authenticationRequest; DebugPrintValue;
-            authenticate@JPM(authenticationRequest)(token);
-            println@Console(token)()
-        }
-    } else if (command == "register") {
-        if (#args < 4) {
-            println@Console("Usage: jpm register <username> <password> [registry]")()
+            }
         } else {
+            displayPrompt@ConsoleUI("Username")
+                (authenticationRequest.username);
+            displayPasswordPrompt@ConsoleUI("Password")
+                (authenticationRequest.password);
+            if (#args == 3) {
+                authenticationRequest.registry = args[2]
+            }
+        };
+        authenticate@JPM(authenticationRequest)(token);
+        println@Console("OK")()
+    } else if (command == "register") {
+        if (#args >= 4) {
             registrationRequest.username = args[2];
             registrationRequest.password = args[3];
             if (#args == 5) {
                 registrationRequest.registry = args[4]
+            }
+        } else {
+            displayPrompt@ConsoleUI("Username")(registrationRequest.username);
+            displayPasswordPrompt@ConsoleUI("Password")
+                (registrationRequest.password);
+            displayPasswordPrompt@ConsoleUI("Password (Repeat)")(repeat);
+            if (registrationRequest.password != repeat) {
+                throw(CLIFault, {
+                    .type = 400,
+                    .message = "Passwords do not match"
+                })
             };
-            register@JPM(registrationRequest)(token);
-            println@Console(token)()
-        }
+
+            if (#args == 3) {
+                registrationRequest.registry = args[2]
+            }
+        };
+        register@JPM(registrationRequest)(token);
+        println@Console(token)()
     } else if (command == "logout") {
-        logoutRequest.token = "5f0433e5-d4b0-4080-8d52-73841e8a9caf";
         if (#args == 3) {
             logoutRequest.registry = args[2]
         };
-        logout@JPM(logoutRequest)()
+        logout@JPM(logoutRequest)();
+        println@Console("OK")()
     } else if (command == "whoami") {
-        whoami@JPM({ .token = "f0e003e3-4405-410f-b416-ff07d619dd3e" })(res);
+        whoami@JPM()(res);
         println@Console(res)()
+    } else if (command == "cache") {
+        subCommand -> args[2];
+        if (subCommand == "clear") {
+            clearCache@JPM()()
+        } else {
+            println@Console("Unknown subcommand '" + subCommand + "'")()
+        }
     }
     else {
         println@Console("Unknown command '" + command + "'")()

@@ -14,12 +14,10 @@ type JPMRegistrationRequest: void {
 }
 
 type LogoutRequest: void {
-    .token: string
     .registry?: string
 }
 
 type JPMWhoamiRequest: void {
-    .token: string
     .registry?: string
 }
 
@@ -32,6 +30,10 @@ type InitializationRequest: void {
 
 type JPMQueryRequest: void {
     .query: string
+}
+
+type JPMPublishRequest: void {
+    .registry?: string
 }
 
 type JPMQueryResponse: void {
@@ -54,6 +56,10 @@ interface IJPM {
         initializePackage(InitializationRequest)(void) 
             throws ServiceFault(ErrorMessage),
         start(void)(void) throws ServiceFault(ErrorMessage),
-        installDependencies(void)(void) throws ServiceFault(ErrorMessage),
-        query(JPMQueryRequest)(JPMQueryResponse) throws ServiceFault(ErrorMessage)
+        installDependencies(void)(void) 
+            throws ServiceFault(ErrorMessage),
+        query(JPMQueryRequest)(JPMQueryResponse) 
+            throws ServiceFault(ErrorMessage),
+        publish(JPMPublishRequest)(void) throws ServiceFault(ErrorMessage),
+        clearCache(void)(void)
 }

@@ -33,6 +33,7 @@ type RegistrationRequest: void {
 type RegistrationResponse: string
 
 type PublishRequest: void {
+    .token: string
     .package: string
     .payload: raw
 }
@@ -44,8 +45,6 @@ type WhoamiRequest: void {
 type RegistryLogOutRequest: void {
     .token: string
 }
-
-type PublishResponse: ServiceMessage
 
 type CreatePackageRequest: void {
     .token: string
@@ -67,10 +66,10 @@ type GetPackageListResponse: void {
 type DownloadRequest: void {
     .packageIdentifier: string
     .version: SemVer
+    .token?: string
 }
-type DownloadResponse: bool {
-    .message: string
-    .payload?: raw
+type DownloadResponse: void {
+    .payload: raw
 }
 
 type RegistryQueryRequest: void {
@@ -101,11 +100,14 @@ interface IRegistry {
         whoami(WhoamiRequest)(string)
             throws RegistryFault(ErrorMessage),
         logout(RegistryLogOutRequest)(void),
-        publish(PublishRequest)(PublishResponse),
-        createPackage(CreatePackageRequest)(CreatePackageResponse),
+        publish(PublishRequest)(void)
+            throws RegistryFault(ErrorMessage),
+        createPackage(CreatePackageRequest)(void)
+            throws RegistryFault(ErrorMessage),
         getPackageInfo(GetPackageRequest)(GetPackageResponse),
         getPackageList(GetPackageListRequest)(GetPackageListResponse),
-        download(DownloadRequest)(DownloadResponse),
+        download(DownloadRequest)(DownloadResponse)
+            throws RegistryFault(ErrorMessage),
         query(RegistryQueryRequest)(RegistryQueryResponse),
         getDependencies(RegDependencyRequest)(RegDependencyResponse)
 }

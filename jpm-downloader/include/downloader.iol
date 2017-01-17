@@ -7,13 +7,11 @@ type InstallRequest: void {
     .name: string
     .registryLocation: string
     .targetPackage: string
-    .authentication?: void {
-        .username: string
-        .password: string
-    }
+    .token?: string
 }
 
 interface IDownloader {
     RequestResponse:
-        installDependency(InstallRequest)(void) throws DownloaderFault(ErrorMessage)
+        installDependency(InstallRequest)(void) throws DownloaderFault(ErrorMessage),
+        clearCache(void)(void)
 }

@@ -49,9 +49,11 @@ type AuthListGroupsResponse: void {
 }
 
 type RightsCheckRequest: void {
-    .token: AccessToken
-    .key: string
-    .right: string
+    .token?: AccessToken
+    .check[1, *]: void {
+        .key: string
+        .right: string
+    }
 }
 
 type AuthGroupRequest: void {
@@ -65,6 +67,11 @@ type Group: void {
         .key: string
         .rights[0, *]: string
     }
+}
+
+type RevokeRequest: void {
+    .groupName: string
+    .key: string
 }
 
 interface IAuthorization {
@@ -89,5 +96,9 @@ interface IAuthorization {
             throws AuthorizationFault(ErrorMessage),
         listGroupsByUser(AuthListGroupsRequest)(AuthListGroupsResponse)
             throws AuthorizationFault(ErrorMessage),
-        hasRights(RightsCheckRequest)(bool)
+        hasAnyOfRights(RightsCheckRequest)(bool),
+        hasAllOfRights(RightsCheckRequest)(bool),
+        revokeRights(RevokeRequest)(void)
+            throws AuthorizationFault(ErrorMessage),
+        debug(void)(void)
 }

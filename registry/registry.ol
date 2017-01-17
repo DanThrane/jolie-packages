@@ -36,7 +36,7 @@ constants {
     DATABASE_HOST = "",
     DATABASE_BASE = "/home/dan/registry.db",
     DATABASE_DRIVER = "sqlite",
-    FRESH_TOKEN = 1000 * 60
+    FRESH_TOKEN = 60000
 }
 
 define DatabaseConnect {
@@ -141,24 +141,6 @@ define PackageCheckIfExists {
 
         undef(sqlResponse);
         undef(containsQuery)
-    }
-}
-
-/**
- * @input packageName: string
- */
-define PackageCreate {
-    DatabaseConnect;
-    scope (insertion) {
-        install (SQLException => 
-            println@Console("We already have one of those?")()
-        );
-
-        insertionRequest = "
-            INSERT INTO package (packageName) VALUES (:packageName);
-        ";
-        insertionRequest.packageName = packageName;
-        update@Database(insertionRequest)(ret)
     }
 }
 
@@ -397,12 +379,15 @@ define GroupCreate {
             // this a bit better.
             throw(RegistryFault, s.AuthorizationFault)
         );
+        // Get current user, create group, add user
         UserGet;
         createGroup@Authorization({ .groupName = groupName })();
         addGroupMembers@Authorization({
             .groupName = groupName,
             .users[0] = currentUser
         })();
+
+        // Grant super privileges to current user for said group
         GroupSingletonName;
         changeGroupRights@Authorization({
             .groupName = singletonGroupName,
@@ -413,16 +398,15 @@ define GroupCreate {
     }
 }
 
-
 /**
  * @input token: string
  * @input groupName: string
  */
 define GroupRequireSuperPrivileges {
-    hasRights@AuthorizationFault({
+    hasAnyOfRights@Authorization({
         .token = token,
-        .key = "group." + groupName,
-        .right = "super"
+        .check[0].key = "group." + groupName,
+        .check[0].right = "super"
     })(hasSuperPrivileges);
 
     if (!hasSuperPrivileges) {
@@ -464,24 +448,74 @@ define GroupeRemoveMember {
             throw(RegistryFault, s.AuthorizationFault)
         );
 
+        // Remove from group
         GroupRequireSuperPrivileges;
-        removeGroupMember@Authorization({
+        removeGroupMembers@Authorization({
             .groupName = groupName,
             .users[0] = member
         })();
-        // We need to strip rights associated with group too
+
+        // Strip rights associated with the group
+        currentUser = member;
+        GroupSingletonName;
+        revokeRights@Authorization({
+            .groupName = singletonGroupName,
+            .key = "group." + groupName
+        })()
     }
 }
 
-define GroupTransferOwnership {
-    scope (s) {
-        install(AuthorizationFault =>
-            throw(RegistryFault, s.AuthorizationFault)
+define PackageCreate {
+    // Check if package exists
+    packageName = packageCreateInput.name;
+    PackageCheckIfExists;
+
+    if (packageExists) {
+        throw(RegistryFault, {
+            .type = FAULT_BAD_REQUEST,
+            .message = "Package already exists"
+        })
+    };
+
+    // Ensure that our session is valid
+    // TODO Check if use is allowed to create packages
+    token = packageCreateInput.token;
+    UserGet;
+
+    // Insert package into DB
+    DatabaseConnect;
+    scope (insertion) {
+        install (SQLException => 
+            throw(RegistryFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Package already exists (SQL)"
+            })
         );
 
-        GroupRequireSuperPrivileges;
+        insertionRequest = "
+            INSERT INTO package (packageName) VALUES (:packageName);
+        ";
+        insertionRequest.packageName = packageName;
+        update@Database(insertionRequest)(ret)
+    };
+    
+    // Create implicit package maintainer group and insert current user
 
-    }
+    // TODO We need to validate package name early. Should probably 
+    // create a mechanism for dealing with this user input.
+    groupName = "pkg-maintainers." + packageName;
+    GroupCreate;
+    changeGroupRights@Authorization({
+        .groupName = groupName,
+        
+        .change[0].key = "packages." + packageName,
+        .change[0].right = "write",
+        .change[0].grant = true,
+
+        .change[1].key = "packages." + packageName,
+        .change[1].right = "read",
+        .change[1].grant = true
+    })()
 }
 
 init
@@ -546,31 +580,24 @@ main
         invalidate@Authorization(req.token)()
     }]
 
-    [createPackage(req)(res) {
-        packageName = req.name;
-        PackageCheckIfExists;
-
-        if (packageExists) {
-            res = false;
-            res.message = "Package already exists!"
-        } else {
-            PackageCreate;
-            res = true;
-            res.message = "Package created!"
-        }
+    [createPackage(packageCreateInput)(res) {
+        PackageCreate
     }]
 
     [getPackageList(req)(res) {
+        // TODO Permissions
         PackageGetAll;
         res.results -> packageInformation
     }]
 
     [getPackageInfo(packageName)(res) {
+        // TODO Permissions
         PackageGetInformation;
         res.packages -> packageInformation
     }]
 
     [query(request)(response) {
+        // TODO Permissions
         DatabaseConnect;
         databaseQuery = "
             SELECT
@@ -607,33 +634,53 @@ main
         match@StringUtils(packageName { .regex = "[a-zA-Z0-9_-]*" })(isGood);
         
         if (isGood != 1) {
-            res = false;
-            res.message = "Invalid name"
-        } else {
-            PackageCheckIfExists;
-            if (!packageExists) {
-                res = false;
-                res.message = "Could not find package"
-            } else {
-                pkgFileName = FOLDER_PACKAGES + FILE_SEP + packageName + 
-                        FILE_SEP + version.major + "_" + version.minor + "_" + 
-                        version.patch + ".pkg";
+            throw(RegistryFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Invalid package name"
+            })
+        };
 
-                exists@File(pkgFileName)(pkgExists);
-                if (!pkgExists) {
-                    res = false;
-                    res.message = "Internal server error"
-                } else {
-                    res = true;
-                    res.message = "OK";
+        // Check for download permissions
+        permissionCheck.check[0].key = "packages.*";
+        permissionCheck.check[0].right = "read";
+        permissionCheck.check[1].key = "packages." + packageName;
+        permissionCheck.check[1].right = "read";
+        if (is_defined(req.token)) permissionCheck.token = req.token;
+        hasAnyOfRights@Authorization(permissionCheck)(hasDownloadPermission);
+        if (!hasDownloadPermission) {
+            throw(RegistryFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Unauthorized"
+            })
+        };
 
-                    readFile@File({
-                        .filename = pkgFileName,
-                        .format = "binary"
-                    })(res.payload)
-                }
-            }
-        }
+        // Check if package exists
+        PackageCheckIfExists;
+        if (!packageExists) {
+            throw(RegistryFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Could not find package"
+            })
+        };
+
+        // Check if exists internally
+        pkgFileName = FOLDER_PACKAGES + FILE_SEP + packageName + 
+                FILE_SEP + version.major + "_" + version.minor + "_" + 
+                version.patch + ".pkg";
+
+        exists@File(pkgFileName)(pkgExists);
+        if (!pkgExists) {
+            throw(RegistryFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Internal server error"
+            })
+        };
+
+        // Read into message payload
+        readFile@File({
+            .filename = pkgFileName,
+            .format = "binary"
+        })(res.payload)
     }]
 
     [publish(req)(res) {
@@ -647,64 +694,99 @@ main
         packageName = req.package;
         PackageCheckIfExists;
 
-        if (packageExists) {
-            GetSafeWorkingName;
-            temporaryNameAndLoc = FOLDER_WORK + FILE_SEP + temporaryName;
-            temporaryFileName = temporaryNameAndLoc + ".pkg";
-            writeFile@File({ 
-                .content = req.payload,
-                .filename = temporaryFileName
-            })();
+        if (!packageExists) {
+            packageCreateInput.token = req.token;
+            packageCreateInput.name = req.package;
+            PackageCreate
+        };
+
+        hasAnyOfRights@Authorization({
+            .token = req.token,
+            .check[0].key = "packages." + packageName,
+            .check[0].right = "write"
+        })(hasWriteRights);
+        
+        if (!hasWriteRights) {
+            throw(RegistryFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Unauthorized"
+            })
+        };
+
+        GetSafeWorkingName;
+        temporaryNameAndLoc = FOLDER_WORK + FILE_SEP + temporaryName;
+        temporaryFileName = temporaryNameAndLoc + ".pkg";
+        writeFile@File({ 
+            .content = req.payload,
+            .filename = temporaryFileName
+        })();
+
+        scope (s) {
+            install(RegistryFault =>
+                delete@File(temporaryFileName)();
+                throw(RegistryFault, s.RegistryFault)
+            );
 
             readEntry@ZipUtils({ 
                 .entry = "package.json", 
                 .filename = temporaryFileName
             })(entry);
-            if (!is_defined(entry)) {
-                res = false;
-                res.message = "Package does not contain a package.json file!"
-            } else {
-                validate@Packages({ .data = entry })(validated);
-                report -> validated;
-                if (report.hasErrors) {
-                    res = false;
-                    res.message = "Package has errors."
-                } else {
-                    package -> validated.package;
 
-                    if (package.name != packageName) {
-                        res = false;
-                        res.message = "Package names do not match"
-                    } else {
-                        PackageCheckVersion;
-                        if (isNewest) {
-                            PackageInsertVersion;
-                            PackageInsertDependencies;
-                            baseFolder = FOLDER_PACKAGES + FILE_SEP + package.name;
-                            mkdir@File(baseFolder)();
-                            rename@File({
-                                .filename = temporaryFileName,
-                                .to = baseFolder + FILE_SEP + 
-                                    package.version.major + "_" + 
-                                    package.version.minor + "_" + 
-                                    package.version.patch + ".pkg"
-                            })();
-                            res = true;
-                            res.message = "OK"
-                        } else {
-                            convertToString@SemVer(newestVersion)(versionString);
-                            res = false;
-                            res.message = "Registry already contains a newer " + 
-                                "version of package '" + package.name + 
-                                "' of version '" + versionString + "'"
-                        }
-                    }
-                }
+            if (!is_defined(entry)) {
+                throw(RegistryFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Package does not contain a package.json file!"
+                })
             };
+
+            validate@Packages({ .data = entry })(report);
+            if (report.hasErrors) {
+                throw(RegistryFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Package has errors."
+                })
+            };
+
+            package -> report.package;
+            if (package.name != packageName) {
+                throw(RegistryFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Package names do not match"
+                })
+            };
+    
+            if (package.private) {
+                throw(RegistryFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Cannot publish private packages"
+                })
+            };
+
+            PackageCheckVersion;
+
+            if (!isNewest) {
+                convertToString@SemVer(newestVersion)(versionString);
+                throw(RegistryFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Registry already contains a newer " + 
+                        "version of package '" + package.name + 
+                        "' of version '" + versionString + "'"
+                })
+            };
+
+            PackageInsertVersion;
+            PackageInsertDependencies;
+            baseFolder = FOLDER_PACKAGES + FILE_SEP + package.name;
+            mkdir@File(baseFolder)();
+            rename@File({
+                .filename = temporaryFileName,
+                .to = baseFolder + FILE_SEP + 
+                    package.version.major + "_" + 
+                    package.version.minor + "_" + 
+                    package.version.patch + ".pkg"
+            })();
+
             delete@File(temporaryFileName)()
-        } else {
-            res = false;
-            res.message = "Package not found!"
         }
     }]
 

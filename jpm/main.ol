@@ -9,6 +9,7 @@ include "semver" "semver.iol"
 include "jpm-utils" "utils.iol"
 include "jpm-downloader" "downloader.iol"
 include "execution" "execution.iol"
+include "pkg" "pkg.iol"
 
 execution { sequential }
 
@@ -41,6 +42,24 @@ outputPort Downloader {
 embedded {
     JoliePackage:
         "jpm-downloader" in Downloader {}
+}
+
+define TokensSave {
+    with (writeRequest) {
+        .filename = TOKENS_FILE;
+        .content << tokens;
+        .format = "json"
+    };
+    writeFile@File(writeRequest)()
+}
+
+define TokensRequire {
+    if (!is_defined(tokens.(Registry.location))) {
+        throw(ServiceFault, {
+            .type = FAULT_BAD_REQUEST,
+            .message = "Unauthorized"
+        })
+    }
 }
 
 define PathRequired {
@@ -154,12 +173,9 @@ define DependencyTree {
     PackageRequired;
     
     debug = 0;
-    println@Console(debug++)();
     dependencyStack << package.dependencies;
     currDependency -> dependencyStack[0];
     while (#dependencyStack > 0) {
-        println@Console("Looking at the next dependency:")();
-        value -> currDependency; DebugPrintValue;
         registryName = currDependency.registry;
         name = currDependency.name;
         RegistrySetLocation;
@@ -173,7 +189,6 @@ define DependencyTree {
                     "No such package."            
             })
         };
-        println@Console(debug++)();
 
         resolved -> resolvedDependencies.(currDependency.name);
         if (is_defined(resolved)) {
@@ -194,7 +209,6 @@ define DependencyTree {
         } else {
             // We need to find the best matching version.
             // Start by finding all versions of this package
-            println@Console(debug++)();
             pkgInfo -> info.packages[j];
             for (j = 0, j < #info.packages, j++) {
                 with (version) {
@@ -216,14 +230,12 @@ define DependencyTree {
                         currDependency.version + "'"
                 })
             };
-            println@Console(debug++)();
             // Insert resolved dependency
             with (information) {
-                .version << sortedVersions.versions[0];
+                .version << sortedVersions.versions[#sortedVersions.versions - 1];
                 .registryLocation = Registry.location;
                 .registryName = registryName
             };
-            println@Console(debug++)();
             resolved << information;
             // Insert dependencies of this dependency on the stack
             // We only do this if we are a runtime dependency.
@@ -238,7 +250,6 @@ define DependencyTree {
                     undef(item)
                 }
             };
-            println@Console(debug++)();
             undef(allVersions)
         };
 
@@ -250,7 +261,16 @@ init
 {
     // Don't handle ServiceFaults just send them back to the invoker
     install(ServiceFault => nullProcess);
-    getFileSeparator@File()(FILE_SEP)
+    getFileSeparator@File()(FILE_SEP);
+    HOME = "/home/dan";
+    TOKENS_FILE = HOME + FILE_SEP + ".jpmtokens";
+    exists@File(TOKENS_FILE)(hasTokens);
+    if (hasTokens) {
+        readFile@File({
+            .filename = TOKENS_FILE,
+            .format = "json"
+        })(tokens)
+    }
 }
 
 main
@@ -354,8 +374,8 @@ main
         nextArgument = "joliedev";
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);
 
-        nextArgument = "--pkg-self";
-        nextArgument = package.name;
+        //nextArgument = "--pkg-self";
+        //nextArgument = package.name;
 
         if (packageExists) {
             nextArgument = "--pkg-folder";
@@ -410,9 +430,11 @@ main
                     .registryLocation = dependencyInformation.registryLocation;
                     .targetPackage = global.path
                 };
-                value -> installRequest; DebugPrintValue;
-                installDependency@Downloader(installRequest)();
-                println@Console(dependencyName + " has been installed!")()
+                regLocation = dependencyInformation.registryLocation;
+                if (is_defined(tokens.(regLocation))) {
+                    installRequest.token = tokens.(regLocation)
+                };
+                installDependency@Downloader(installRequest)()
             }
         }
     }]
@@ -429,7 +451,10 @@ main
             authenticate@Registry({ 
                 .username = req.username, 
                 .password = req.password 
-            })(token)
+            })(token);
+
+            tokens.(Registry.location) = token;
+            TokensSave
         }
     }]
 
@@ -443,7 +468,10 @@ main
             register@Registry({
                 .username = req.username,
                 .password = req.password
-            })(token)
+            })(token);
+
+            tokens.(Registry.location) = token;
+            TokensSave
         }
     }]
 
@@ -453,7 +481,11 @@ main
             registryName = "public";
             if (is_defined(req.registry)) registryName = req.registry;
             RegistrySetLocation;
-            whoami@Registry({ .token = req.token })(res)
+            
+            TokensRequire;
+            whoami@Registry({
+                .token = tokens.(Registry.location) 
+            })(res)
         }
     }]
 
@@ -464,9 +496,56 @@ main
             registryName = "public";
             if (is_defined(req.registry)) registryName = req.registry;
             RegistrySetLocation;
-            logoutRequest << { .token = req.token };
-            value -> logoutRequest; DebugPrintValue;
-            logout@Registry(logoutRequest)()
+            
+            TokensRequire;
+            logout@Registry({ 
+                .token = tokens.(Registry.location) 
+            })();
+
+            undef(tokens.(Registry.location));
+            TokensSave
         }
     }]
+
+    [publish(req)(res) {
+        scope (s) {
+            install(RegistryFault =>
+                throw(ServiceFault, s.RegistryFault)
+            );
+            PackageRequired;
+            if (package.private) {
+                throw(ServiceFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Cannot publish private packages"
+                })
+            };
+
+            registryName = "public";
+            if (is_defined(req.registry)) registryName = req.registry;
+            RegistrySetLocation;
+
+            TokensRequire;
+
+            println@Console("Creating file")();
+            temporaryLocation = "/tmp/"; // TODO Name
+            pkgRequest.zipLocation = temporaryLocation;
+            pkgRequest.packageLocation = global.path;
+            pack@Pkg(pkgRequest)();
+
+            println@Console("Reading back file from: " + temporaryLocation + ".pkg")();
+            readFile@File({
+                .filename = temporaryLocation + package.name + ".pkg",
+                .format = "binary"
+            })(payload);
+            
+            println@Console("Publishing package")();
+            publish@Registry({
+                .package = package.name,
+                .payload = payload,
+                .token = tokens.(Registry.location)
+            })()
+        }
+    }]
+
+    [clearCache()() { clearCache@Downloader()() }]
 }

@@ -1,6 +1,7 @@
 include "authorization.iol"
 include "time.iol"
 include "bcrypt" "bcrypt.iol"
+include "jpm-utils" "utils.iol"
 
 execution { sequential }
 
@@ -14,16 +15,37 @@ inputPort Authorization {
  * @input username: string
  * @output groups[0, *]: string
  */
-define UserGroupsFind {
+define FindAllGroupsForUsername {
     nextGroup -> groups[#groups];
-    foreach (group : global.groups) {
+    foreach (groupName : global.groups) {
+        group -> global.groups.(groupName);
         keepRun = true;
         for (i = 0, i < #group.members && keepRun, i++) {
             if (group.members[i] == username) {
-                nextGroup = group.name;
+                nextGroup = groupName;
                 keepRun = false
             }
         }
+    }
+}
+
+/**
+ * @input token: string
+ * @output groups[0, *]: string
+ */
+define FindAllGroupsForToken {
+    if (is_defined(request.token)) {
+        session -> global.sessions.(request.token);
+        if (!is_defined(session)) {
+            throw(AuthorizationFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Invalid session"
+            })
+        };
+        username = session.username;
+        FindAllGroupsForUsername
+    } else {
+        groups[0] = "auth.guest"
     }
 }
 
@@ -77,11 +99,34 @@ define Auth {
     undef(invalidError)
 }
 
+/**
+ * @input groupName: string
+ */
+define GroupRequireNonAuth {
+    startsWith@StringUtils(groupName { .prefix = "auth." })(isAuthGroup);
+    if (isAuthGroup) {
+        throw(AuthorizationFault, {
+            .type = FAULT_BAD_REQUEST,
+            .message = "auth.* groups cannot be changed externally"
+        })
+    };
+    undef(isAuthGroup)
+}
+
 init {
-    install(AuthorizationFault => nullProcess)
+    install(AuthorizationFault => nullProcess);
+
+    // Default rights. This should be doable from ext configuration
+    global.groups.("auth.guest").rights.("packages.*").("read") = true
 }
 
 main {
+    [debug()() {
+        // TODO This should obviously not be left in.
+        value -> global.sessions; DebugPrintValue;
+        value -> global.groups; DebugPrintValue
+    }]
+
     [register(request)(token) {
         if (is_defined(global.users.(request.username))) {
             throw(AuthorizationFault, {
@@ -128,19 +173,23 @@ main {
     }]
 
     [createGroup(request)(response) {
-        global.groups.(request.groupName) << {
-            .name = request.groupName
+        groupName = request.groupName;
+        GroupRequireNonAuth;
+        global.groups.(groupName) << {
+            .name = groupName
         }
     }]
 
     [deleteGroup(request)(response) {
         groupName = request.groupName;
+        GroupRequireNonAuth;
         GroupFind;
         undef(group)
     }]
 
     [changeGroupRights(request)(response) {
         groupName = request.groupName;
+        GroupRequireNonAuth;
         GroupFind;
         change -> request.change[i];
         for (i = 0, i < #request.change, i++) {
@@ -154,14 +203,16 @@ main {
 
     [addGroupMembers(request)(response) {
         groupName = request.groupName;
+        GroupRequireNonAuth;
         GroupFind;
-        for (i = 0, i < request.users, i++) {
+        for (i = 0, i < #request.users, i++) {
             group.members[#group.members] = request.users[i]
         }
     }]
 
     [removeGroupMembers(request)(response) {
         groupName = request.groupName;
+        GroupRequireNonAuth;
         GroupFind;
         userToDelete -> request.users[i];
         for (i = 0, i < request.users, i++) {
@@ -177,13 +228,14 @@ main {
 
     [getGroup(request)(response) {
         groupName = request.groupName;
+        GroupRequireNonAuth;
         GroupFind;
         response.name = groupName;
         response.members -> group.members;
         foreach (object : group.rights) {
             o.key = object;
             foreach (right : group.rights.(object)) {
-                o.rights[o.rights] = right
+                o.rights[#o.rights] = right
             };
             response.objects[#response.objects] << o
         }
@@ -191,22 +243,49 @@ main {
 
     [listGroupsByUser(request)(response) {
         username = request.username;
-        UserGroupsFind;
+        FindAllGroupsForUsername;
         response.groups -> groups
     }]
 
-    [hasRights(request)(response) {
-        session -> global.sessions.(request.token);
+    [hasAllOfRights(request)(response) {
+        response = true;
+        token = request.token;
+        FindAllGroupsForToken;
+        group -> global.groups.(groups[j]);
+        for (i = 0, i < #groups && response, i++) {
+            found = false;
+            for (j = 0, j < #groups && !found, j++) {
+                if (!is_defined(group.rights
+                        .(request.check[i].key).(request.check[i].right))) {
+                    found = true
+                }
+            };
+            if (!found) {
+                response = false
+            }
+        }
+    }]
+
+    [hasAnyOfRights(request)(response) {
         response = false;
-        if (is_defined(session)) {
-            username = session.username;
-            UserGroupsFind;
-            group -> groups[i];
-            for (i = 0, i < groups && !response, i++) {
-                if (is_defined(group.rights.(key).(right))) {
+        token = request.token;
+        FindAllGroupsForToken;
+        group -> global.groups.(groups[j]);
+        currentCheck -> request.check[i];
+        for (i = 0, i < #request.check && !response, i++) {
+            for (j = 0, j < #groups && !response, j++) {
+                if (is_defined(group.rights
+                        .(currentCheck.key).(currentCheck.right))) {
                     response = true
                 }
             }
         }
-    }]    
+    }]
+
+    [revokeRights(request)(response) {
+        groupName = request.groupName;
+        GroupRequireNonAuth;
+        GroupFind;
+        undef(group.rights.(request.key))
+    }]
 }

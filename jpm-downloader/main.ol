@@ -90,62 +90,59 @@ main {
         CacheLocation;
         exists@File(cacheInstallationLocation)(hasCachedCopy);
         if (!hasCachedCopy) {
-            if (is_defined(request.authentication)) {
-                authenticationRequest.username = request.authentication.username;
-                authenticationRequest.password = request.authentication.password
-            } else {
-                authenticationRequest.username = "guest";
-                authenticationRequest.password = "guest"
-            };
-
             Registry.location = request.registryLocation;
-            authenticate@Registry(authenticationRequest)(authRes);
-            if (authRes) {
-                baseMessage << { .token = authRes.token };
+            
+            scope(pkgScope) {
+                install(InvalidArgumentFault => 
+                    println@Console(InvalidArgumentFault.message)()
+                );
+                install(RegistryFault =>
+                    throw(DownloaderFault, pkgScope.RegistryFault)
+                );
 
-                scope(pkgScope) {
-                    install(InvalidArgumentFault => 
-                        println@Console(InvalidArgumentFault.message)()
-                    );
+                downloadRequest.packageIdentifier = request.name;
+                downloadRequest.version.major = request.major;
+                downloadRequest.version.minor = request.minor;
+                downloadRequest.version.patch = request.patch;
+                if (is_defined(request.token)) {
+                    downloadRequest.token = request.token
+                    // TODO Handle not having a token
+                };
 
-                    downloadRequest.packageIdentifier = request.name;
-                    downloadRequest.version.major = request.major;
-                    downloadRequest.version.minor = request.minor;
-                    downloadRequest.version.patch = request.patch;
+                println@Console("Ready to download dependency")();
+                download@Registry(downloadRequest)(value);
+                println@Console("Done. Installing dependency")();
 
-                    download@Registry(downloadRequest)(value);
-                    println@Console(value.res)();
-                    println@Console(value.message)();
-
-                    if (is_defined(value.payload)) {
-                        cachedPkg = cacheInstallationLocation + ".pkg";
-                        writeFile@File({ 
-                            .content = value.payload,
-                            .filename = cachedPkg
-                        })();
-                        unzip@ZipUtils({
-                            .targetPath = cacheInstallationLocation,
-                            .filename = cachedPkg
-                        })();
-                        delete@File(cachedPkg)();
-                        println@Console("Downloaded file and installed in cache")()
-                    }
-                }
+                cachedPkg = cacheInstallationLocation + ".pkg";
+                writeFile@File({ 
+                    .content = value.payload,
+                    .filename = cachedPkg
+                })();
+                unzip@ZipUtils({
+                    .targetPath = cacheInstallationLocation,
+                    .filename = cachedPkg
+                })();
+                delete@File(cachedPkg)()
             }
         };
         packagesLocation = request.targetPackage + FILE_SEP + "jpm_packages";
-        println@Console("Target location is " + packagesLocation)();
         exists@File(packagesLocation)(hasPackagesFolder);
         if (!hasPackagesFolder) {
-            println@Console("Creating target folder")();
             mkdir@File(packagesLocation)()
         };
         installationLocation = packagesLocation + FILE_SEP + request.name;
 
-        println@Console("Copying to target location: " + installationLocation)();
         copyDir@File({
             .from = cacheInstallationLocation,
             .to = installationLocation
         })()
+    }]
+
+    [clearCache()() {
+        exists@File(PATH_CACHE)(cacheExists);
+        if (cacheExists) {
+            deleteDir@File(PATH_CACHE)()
+        };
+        mkdir@File(PATH_CACHE)()
     }]
 }
