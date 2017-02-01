@@ -1,5 +1,6 @@
 package dk.thrane.jolie.execution;
 
+import jolie.Interpreter;
 import jolie.runtime.FaultException;
 import jolie.runtime.JavaService;
 import jolie.runtime.Value;

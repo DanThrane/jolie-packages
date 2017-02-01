@@ -12,7 +12,7 @@ outputPort JPM {
 
 embedded {
     JoliePackage:
-        "jpm" in JPM {} // TODO FIXME bug in interpreter. Cfg should be optional
+        "jpm" in JPM
 }
 
 main {
@@ -49,7 +49,13 @@ Available commands:
   - cache <cmd>     Cache sub command
 ")()
     } else if (command == "init") {
-        nullProcess
+        displayPrompt@ConsoleUI("Package name")(req.name);
+        displayPrompt@ConsoleUI("Package description")(req.description);
+        displayPrompt@ConsoleUI("Author: [Format: name <email> (homepage)]")(req.authors);
+        displayYesNoPrompt@ConsoleUI("Private package?" { 
+            .defaultValue = true 
+        })(req.private);
+        initializePackage@JPM(req)()
     } else if (command == "install") {
         installDependencies@JPM()()
     } else if (command == "publish") {

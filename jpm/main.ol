@@ -13,8 +13,7 @@ include "pkg" "pkg.iol"
 
 execution { sequential }
 
-constants
-{
+constants {
     FOLDER_PACKAGES = "jpm_packages",
     REGISTRY_PUBLIC = "socket://localhost:12345"
 }
@@ -41,7 +40,7 @@ outputPort Downloader {
 
 embedded {
     JoliePackage:
-        "jpm-downloader" in Downloader {}
+        "jpm-downloader" in Downloader
 }
 
 define TokensSave {
@@ -51,7 +50,7 @@ define TokensSave {
         .format = "json"
     };
     writeFile@File(writeRequest)()
-}
+ }
 
 define TokensRequire {
     if (!is_defined(tokens.(Registry.location))) {
@@ -327,27 +326,35 @@ main
     }]
 
     [initializePackage(request)() {
-        exists@File(request.baseDirectory)(baseDirectoryExists);
-        if (!baseDirectoryExists) {
+        exists@File(global.path)(global.pathExists);
+        if (!global.pathExists) {
             throw(ServiceFault, {
                 .type = FAULT_BAD_REQUEST,
                 .message = "Base directory does not exist!"
             })
         };
 
-        mkdir@File(baseDirectory + FILE_SEP + request.name)(success);
+        exists@File(global.path + FILE_SEP + request.name)(packageExists);
+        if (packageExists) {
+            throw(ServiceFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Package already exists!"
+            })
+        };
+
+        mkdir@File(global.path + FILE_SEP + request.name)(success);
         if (!success) {
             throw(ServiceFault, {
                 .type = FAULT_INTERNAL,
                 .message = "Unable to create directory. Does JPM have " + 
-                    "permissions to create directory in 'baseDirectory'?"
+                    "permissions to create directory in '" + global.path+ "'?"
             })
         };
 
         packageManifest.name = request.name;
         packageManifest.description = request.description;
         packageManifest.version = "0.1.0";
-        packageManifest.private = true;
+        packageManifest.private = request.private;
         packageManifest.authors -> request.authors;
         getJsonString@JsonUtils(packageManifest)(jsonManifest);
 
@@ -362,7 +369,7 @@ main
 
         writeFile@File({
             .content = jsonManifest,
-            .filename = baseDirectory + FILE_SEP + request.name + FILE_SEP + 
+            .filename = global.path + FILE_SEP + request.name + FILE_SEP + 
                 "package.json"
         })()
     }]
