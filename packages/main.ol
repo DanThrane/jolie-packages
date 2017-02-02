@@ -8,9 +8,7 @@ include "jpm-utils" "utils.iol"
 
 execution { concurrent }
 
-inputPort Packages {
-    Location: "socket://localhost:8888"
-    Protocol: sodep
+ext inputPort Packages {
     Interfaces: IPackages
 }
 
@@ -185,6 +183,7 @@ main
                 }
             };
             validateAuthors@ValidationUtil(file)(authorsResp);
+            
             for (i = 0, i < #authorsResp.items, i++) {
                 nextItem << authorsResp.items[i]
             };
@@ -258,7 +257,7 @@ main
                     packageBuilder.registries[#packageBuilder.registries] << packageRegistry
                 }
             };
-
+            
             // Validate dependencies
             if (is_defined(file.dependencies)) {
                 dependency -> file.dependencies[i];

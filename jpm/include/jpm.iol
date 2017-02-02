@@ -61,5 +61,6 @@ interface IJPM {
         query(JPMQueryRequest)(JPMQueryResponse) 
             throws ServiceFault(ErrorMessage),
         publish(JPMPublishRequest)(void) throws ServiceFault(ErrorMessage),
-        clearCache(void)(void)
+        clearCache(void)(void),
+        ping(void)(void) throws ServiceFault(ErrorMessage)
 }

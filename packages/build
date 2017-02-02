@@ -3,4 +3,5 @@ rm -rf lib
 cd packages-java
 gradle jar
 cd ..
+mkdir lib
 cp packages-java/build/libs/*.jar lib

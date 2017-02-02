@@ -109,5 +109,6 @@ interface IRegistry {
         download(DownloadRequest)(DownloadResponse)
             throws RegistryFault(ErrorMessage),
         query(RegistryQueryRequest)(RegistryQueryResponse),
-        getDependencies(RegDependencyRequest)(RegDependencyResponse)
+        getDependencies(RegDependencyRequest)(RegDependencyResponse),
+        ping(string)(string)
 }

@@ -24,8 +24,6 @@ inputPort JPM {
 }
 
 outputPort Packages {
-    Location: "socket://localhost:8888"
-    Protocol: sodep
     Interfaces: IPackages
 }
 
@@ -40,7 +38,10 @@ outputPort Downloader {
 
 embedded {
     JoliePackage:
-        "jpm-downloader" in Downloader
+        "jpm-downloader" in Downloader,
+        "packages" in Packages {
+            inputPort Packages { Location: "local" Protocol: sodep } // TODO Shoudln't we allow no protocol? 
+        }
 }
 
 define TokensSave {
@@ -362,7 +363,7 @@ main
         if (report.hasErrors) {
             faultInfo.type = FAULT_BAD_REQUEST;
             faultInfo.message = "Input has errors";
-            faultInfo.details -> report.items;
+            faultInfo.details << report.items;
 
             throw(ServiceFault, faultInfo)
         };
@@ -390,7 +391,6 @@ main
         };
 
         currentDependency -> package.dependencies[i];
-        valueToPrettyString@StringUtils(package)(prettyPackage);
         for (i = 0, i < #package.dependencies, i++) {
             dependencyName = currentDependency.name;
             PackageRequiredInDependency;
@@ -555,4 +555,25 @@ main
     }]
 
     [clearCache()() { clearCache@Downloader()() }]
+
+    [ping()() {
+        scope (s) {
+            install(IOException =>
+                throw(ServiceFault, {
+                    .type = FAULT_INTERNAL,
+                    .message = "Unable to contact registry"
+                })
+            );
+            registryName = "public";
+            RegistrySetLocation;
+            pingMessage = "ping";
+            ping@Registry(pingMessage)(output);
+            if (pingMessage != output) {
+                throw(ServiceFault, {
+                    .type = FAULT_INTERNAL,
+                    .message = "Unable to contact registry"
+                })
+            }
+        }
+    }]
 }

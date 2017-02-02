@@ -7,8 +7,7 @@ import jolie.runtime.Value;
 import jolie.runtime.ValueVector;
 import jolie.runtime.embedding.RequestResponse;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
@@ -29,12 +28,39 @@ public class ExecutionService extends JavaService {
         if (!suppressIO) builder.inheritIO();
         try {
             Process start = builder.start();
-            return start.waitFor();
+            Thread outThread = null;
+            Thread errThread = null;
+            if (!suppressIO) {
+                outThread = readFully(start.getInputStream(), System.out);
+                errThread = readFully(start.getErrorStream(), System.err);
+                outThread.start();
+                errThread.start();
+            }
+            int i = start.waitFor();
+            if (!suppressIO) {
+                outThread.join();
+                errThread.join();
+            }
+            return i;
         } catch (IOException e) {
             throw new FaultException(e);
         } catch (InterruptedException e) {
             return -1;
         }
+    }
+
+    private Thread readFully(InputStream in, PrintStream out) {
+        return new Thread(() -> {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String line;
+            try {
+                while ((line = reader.readLine()) != null) {
+                    out.println(line);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private Stream<Value> valuesStream(ValueVector vector) {

@@ -1,4 +1,5 @@
 include "registry.iol"
+include "admin.iol"
 include "string_utils.iol"
 include "console.iol"
 include "file.iol"
@@ -11,6 +12,17 @@ include "jpm-utils" "utils.iol"
 include "authorization" "authorization.iol"
 
 execution { concurrent }
+
+constants {
+    ENABLE_KILL_COMMAND = true
+    KILL_TOKEN = "1234"
+}
+
+inputPort Admin {
+    Location: "socket://localhost:12346"
+    Protocol: sodep
+    Interfaces: IAdmin
+}
 
 inputPort Registry {
     Location: "socket://localhost:12345"
@@ -518,8 +530,7 @@ define PackageCreate {
     })()
 }
 
-init
-{
+init {
     install(RegistryFault => nullProcess);
     getFileSeparator@File()(FILE_SEP);
     FOLDER_PACKAGES = "data" + FILE_SEP + "packages";
@@ -528,11 +539,20 @@ init
 
     mkdir@File(FOLDER_PACKAGES)();
     mkdir@File(FOLDER_WORK)();
-    DatabaseInit
+    DatabaseInit;
+
+    println@Console("
+     _ ____  __  __   ____            _     _              
+    | |  _ \\|  \\/  | |  _ \\ ___  __ _(_)___| |_ _ __ _   _ 
+ _  | | |_) | |\\/| | | |_) / _ \\/ _` | / __| __| '__| | | |
+| |_| |  __/| |  | | |  _ <  __/ (_| | \\__ \\ |_| |  | |_| |
+ \\___/|_|   |_|  |_| |_| \\_\\___|\\__, |_|___/\\__|_|   \\__, |
+                                |___/                |___/
+")();
+    println@Console("Ready!")()
 }
 
-main
-{
+main {
     [authenticate(req)(res) {
         // TODO We need some clear rules on usernames and passwords. 
         // We need to be sure that a maliciously crafted username won't do any
@@ -818,6 +838,16 @@ main
                 sqlResponse.row[i].type = int(sqlResponse.row[i].type)
             };
             response.dependencies -> sqlResponse.row
+        }
+    }]
+
+    [ping(echo)(echo) {
+        nullProcess
+    }]
+
+    [kill(token)() {
+        if (ENABLE_KILL_COMMAND && token == KILL_TOKEN) {
+            exit
         }
     }]
 }

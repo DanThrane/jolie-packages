@@ -17,13 +17,36 @@ embedded {
 
 main {
     install(ServiceFault =>
-        println@Console("An error has occoured!")();
-        value -> main.ServiceFault; DebugPrintValue
+        errorMessage = "Error! ";
+        errorMessage += main.ServiceFault.type;
+        errorMessage += " ";
+        if (main.ServiceFault.type == FAULT_BAD_REQUEST) {
+            errorMessage += "(Bad request)"
+        } else if (main.ServiceFault.type == FAULT_INTERNAL) {
+            errorMessage += "(Internal)"
+        };
+        errorMessage += "\n";
+        errorMessage += main.ServiceFault.message;
+        if (is_defined(main.ServiceFault.details)) {
+            valueToPrettyString@StringUtils(main.ServiceFault.details)(prettyDetails);
+            errorMessage += "\nAdditional details:\n";
+            errorMessage += prettyDetails
+        };
+        println@Console(errorMessage)()
     );
 
     install(CLIFault =>
-        println@Console("Error:")();
-        value -> main.CLIFault; DebugPrintValue
+        errorMessage = "Error [CLI]! ";
+        errorMessage += main.CLIFault.type;
+        errorMessage += " ";
+        if (main.CLIFault.type == FAULT_BAD_REQUEST) {
+            errorMessage += "(Bad request)"
+        } else if (main.CLIFault.type == FAULT_INTERNAL) {
+            errorMessage += "(Internal)"
+        };
+        errorMessage += "\n";
+        errorMessage += main.CLIFault.message;
+        println@Console(errorMessage)()
     );
     
     setContext@JPM(args[0])();
@@ -148,6 +171,9 @@ Available commands:
         } else {
             println@Console("Unknown subcommand '" + subCommand + "'")()
         }
+    } else if (command == "ping") {
+        ping@JPM()();
+        println@Console("OK")()
     }
     else {
         println@Console("Unknown command '" + command + "'")()
