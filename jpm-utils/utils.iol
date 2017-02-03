@@ -12,6 +12,7 @@ define DebugPrintValue {
 
 constants {
     FAULT_BAD_REQUEST = 400,
+    FAULT_NOT_FOUND = 404,
     FAULT_INTERNAL = 500
 }
 

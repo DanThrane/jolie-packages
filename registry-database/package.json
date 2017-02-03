@@ -1,0 +1,14 @@
+{
+    "name": "registry-database",
+    "description": "Database of the JPM registry",
+    "license": "MIT",
+    "version": "0.1.0",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "main": "main.ol",
+    "private": false,
+    "dependencies": [
+        { "name": "packages", "version" "*" },
+        { "name": "sqlite", "version" "*" },
+        { "name": "jpm-utils", "version" "*" }
+    ]
+}

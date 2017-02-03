@@ -44,14 +44,14 @@ embedded {
 }
 
 constants {
-    ENABLE_KILL_COMMAND = true,
-    KILL_TOKEN = "1234",
-    DATABSE_USERNAME = "",
-    DATABASE_PASSWORD = "",
-    DATABASE_HOST = "",
-    DATABASE_BASE = "/home/dan/registry.db",
-    DATABASE_DRIVER = "sqlite",
-    FRESH_TOKEN = 60000
+    ENABLE_KILL_COMMAND: bool,
+    KILL_TOKEN: string,
+    DATABSE_USERNAME: string,
+    DATABASE_PASSWORD: string,
+    DATABASE_HOST: string,
+    DATABASE_BASE: string,
+    DATABASE_DRIVER: string,
+    FRESH_TOKEN: long
 }
 
 define DatabaseConnect {
