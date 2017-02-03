@@ -1,0 +1,3 @@
+profile "default" configures "configuration-and-cli-arguments" {
+    SOME_OTHER_TOKEN = "Testing default configuration"
+}

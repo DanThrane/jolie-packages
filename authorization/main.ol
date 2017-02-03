@@ -5,9 +5,7 @@ include "jpm-utils" "utils.iol"
 
 execution { sequential }
 
-inputPort Authorization {
-    Location: "socket://localhost:44444"
-    Protocol: sodep // Should be sodeps
+ext inputPort Authorization {
     Interfaces: IAuthorization
 }
 

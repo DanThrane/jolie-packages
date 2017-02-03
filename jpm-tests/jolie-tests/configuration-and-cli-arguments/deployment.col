@@ -1,0 +1,8 @@
+profile "with-defaults" configures "configuration-and-cli-arguments" {
+    TOKEN = "1234",
+}
+
+profile "without-defaults" configures "configuration-and-cli-arguments" {
+    TOKEN = "1234",
+    SOME_OTHER_TOKEN = "Do we override?"
+}

@@ -1,0 +1,3 @@
+profile "testenv-kill" configures "registry-admin" {
+    KILL_TOKEN = "1234",
+}

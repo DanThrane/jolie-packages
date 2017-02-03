@@ -111,7 +111,19 @@ Available commands:
             println@Console(table)()
         }
     } else if (command == "start") {
-        start@JPM()()
+        isDeploying = args[2] == "--deploy";
+        if (isDeploying) {
+            startReq.deployment.profile = args[3];
+            startReq.deployment.file = args[4]
+        };
+
+        i = 2;
+        if (isDeploying) i = 5;
+        for (i = i, i < #args, i++) {
+            startReq.args[#startReq.args] = args[i]
+        };
+
+        start@JPM(startReq)()
     } else if (command == "login") {
         if (#args >= 4) {
             authenticationRequest.username = args[2];

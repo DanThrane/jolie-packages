@@ -43,6 +43,14 @@ type JPMQueryResponse: void {
     }
 }
 
+type JPMStartRequest: void {
+    .args[0, *]: string
+    .deployment?: void {
+        .profile: string
+        .file: string
+    }
+}
+
 interface IJPM {
     RequestResponse:
         setContext(string)(void) throws ServiceFault(ErrorMessage),
@@ -55,7 +63,7 @@ interface IJPM {
             throws ServiceFault(ErrorMessage),
         initializePackage(InitializationRequest)(void) 
             throws ServiceFault(ErrorMessage),
-        start(void)(void) throws ServiceFault(ErrorMessage),
+        start(JPMStartRequest)(void) throws ServiceFault(ErrorMessage),
         installDependencies(void)(void) 
             throws ServiceFault(ErrorMessage),
         query(JPMQueryRequest)(JPMQueryResponse) 

@@ -1,4 +1,9 @@
 include "registry" "admin.iol"
+include "console.iol"
+
+constants {
+    KILL_TOKEN: string,
+}
 
 outputPort Admin {
     Location: "socket://localhost:12346"
@@ -7,5 +12,5 @@ outputPort Admin {
 }
 
 main {
-    kill@Admin("1234")()
+    kill@Admin(KILL_TOKEN)()
 }

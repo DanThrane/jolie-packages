@@ -5,7 +5,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.hamcrest.CoreMatchers.*
 
-class JPMHelpTest {
+class HelpTest {
     @Test
     fun testHelpText() {
         val result = JPM(File("."), listOf("help")).run()

@@ -13,11 +13,6 @@ include "authorization" "authorization.iol"
 
 execution { concurrent }
 
-constants {
-    ENABLE_KILL_COMMAND = true
-    KILL_TOKEN = "1234"
-}
-
 inputPort Admin {
     Location: "socket://localhost:12346"
     Protocol: sodep
@@ -31,18 +26,26 @@ inputPort Registry {
 }
 
 outputPort Packages {
-    Location: "socket://localhost:8888"
-    Protocol: sodep
     Interfaces: IPackages
 }
 
 outputPort Authorization {
-    Location: "socket://localhost:44444"
-    Protocol: sodep
     Interfaces: IAuthorization
 }
 
+embedded {
+    JoliePackage:
+        "packages" in Packages {
+            inputPort Packages { Location: "local" Protocol: sodep }
+        },
+        "authorization" in Authorization {
+            inputPort Authorization { Location: "local" Protocol: sodep }
+        }
+}
+
 constants {
+    ENABLE_KILL_COMMAND = true,
+    KILL_TOKEN = "1234",
     DATABSE_USERNAME = "",
     DATABASE_PASSWORD = "",
     DATABASE_HOST = "",

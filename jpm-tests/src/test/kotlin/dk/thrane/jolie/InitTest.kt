@@ -10,7 +10,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import java.io.FileReader
 
-class JPMInitTest {
+class InitTest {
     val gson = Gson()
 
     @Test

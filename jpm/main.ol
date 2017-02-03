@@ -375,15 +375,23 @@ main
         })()
     }]
 
-    [start()() {
+    [start(request)() {
         PackageRequired;
         nextArgument -> command[#command];
 
         nextArgument = "joliedev";
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);
 
-        //nextArgument = "--pkg-self";
-        //nextArgument = package.name;
+        isDeploying = is_defined(request.deployment);
+        
+        if (isDeploying) {
+            nextArgument = "--pkg-root";
+            nextArgument = package.name;
+            nextArgument = "--main." + package.name;
+            nextArgument = global.path + FILE_SEP + package.main
+        };
+
+        // TODO package-self and main entry for self
 
         if (packageExists) {
             nextArgument = "--pkg-folder";
@@ -403,7 +411,19 @@ main
             undef(dependencyPackage)
         };
         
-        nextArgument = package.main;
+        if (isDeploying) {  
+            nextArgument = "--deploy";
+            nextArgument = request.deployment.profile;
+            nextArgument = request.deployment.file
+        } else {
+            nextArgument = package.main
+        };
+
+        if (is_defined(request.args)) {
+            for (i = 0, i < #request.args, i++) {
+                nextArgument = request.args[i]
+            }
+        };
 
         executionRequest.directory = global.path;
         executionRequest.suppress = false;

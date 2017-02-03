@@ -1,0 +1,8 @@
+{
+    "name": "configuration-and-cli-arguments",
+    "authors": "Dan Sebastian Thrane",
+    "version": "0.1.0",
+    "private": false,
+    "license": "MIT",
+    "main": "main.ol"
+}

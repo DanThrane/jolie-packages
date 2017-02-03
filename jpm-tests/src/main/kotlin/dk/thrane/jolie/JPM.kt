@@ -15,7 +15,8 @@ class JPM(
         val PATTERN = "Error.*! (\\d+).*".toRegex()
 
         val DEPLOY_REGISTRY = JPM(File(System.getenv("JPM_CLI_HOME"), "../registry"), listOf("start"))
-        val KILL_REGISTRY = JPM(File(System.getenv("JPM_CLI_HOME"), "../registry-admin"), listOf("start"))
+        val KILL_REGISTRY = JPM(File(System.getenv("JPM_CLI_HOME"), "../registry-admin"),
+                listOf("start", "--deploy", "testenv-kill", "deployment.col"))
 
         fun withRegistry(printStdOut: Boolean = false, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
             val registryProcess = JPM.DEPLOY_REGISTRY.startProcess()

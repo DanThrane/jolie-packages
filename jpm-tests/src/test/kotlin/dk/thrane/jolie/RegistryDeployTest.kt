@@ -22,4 +22,3 @@ class RegistryDeployTest {
         assertThat(pingResult.exitMessage, containsString("Unable to contact registry"))
     }
 }
-
