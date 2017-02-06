@@ -257,8 +257,7 @@ define DependencyTree {
     }
 }
 
-init
-{
+init {
     // Don't handle ServiceFaults just send them back to the invoker
     install(ServiceFault => nullProcess);
     getFileSeparator@File()(FILE_SEP);
@@ -273,8 +272,7 @@ init
     }
 }
 
-main
-{
+main {
     [setContext(path)() {
         exists@File(path)(pathExists);
         if (!pathExists) {
@@ -348,7 +346,7 @@ main
             throw(ServiceFault, {
                 .type = FAULT_INTERNAL,
                 .message = "Unable to create directory. Does JPM have " + 
-                    "permissions to create directory in '" + global.path+ "'?"
+                    "permissions to create directory in '" + global.path + "'?"
             })
         };
 
