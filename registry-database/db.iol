@@ -1,6 +1,16 @@
 include "packages" "packages.iol"
 include "jpm-utils" "utils.iol"
 
+type PackageInformation: void {
+    .packageName: string
+    .major: int
+    .minor: int
+    .patch: int
+    .label?: string
+    .description?: string
+    .license: LicenseIdentifier
+}
+
 type RegDBQueryRequest: void {
     .query: string
 }
@@ -19,11 +29,11 @@ type RegDBPkgInfoRequest: void {
 }
 
 type RegDBPkgInfoResult: void {
-    .packageInformation[0, *]: PackageInformation
+    .results[0, *]: PackageInformation
 }
 
 type RegDBPkgListResult: void {
-    .packageInformation[0, *]: PackageInformation
+    .results[0, *]: PackageInformation
 }
 
 type RegDBCompareWithNewestRequest: void {

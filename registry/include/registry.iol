@@ -1,20 +1,11 @@
 include "packages" "packages.iol"
 include "semver" "semver.iol"
 include "jpm-utils" "utils.iol"
+include "registry-database" "db.iol"
 
 // Utility types
 type ServiceMessage: bool {
     .message: string
-}
-
-type PackageInformation: void {
-    .packageName: string
-    .major: int
-    .minor: int
-    .patch: int
-    .label?: string
-    .description?: string
-    .license: LicenseIdentifier
 }
 
 // Request response types
@@ -55,7 +46,7 @@ type CreatePackageResponse: ServiceMessage
 
 type GetPackageRequest: string
 type GetPackageResponse: void {
-    .packages[0, *]: PackageInformation
+    .results[0, *]: PackageInformation
 }
 
 type GetPackageListRequest: void

@@ -1,0 +1,15 @@
+profile "reg-test" configures "registry" {
+    outputPort RegDB embeds "regdb-test",
+    ENABLE_KILL_COMMAND = true,
+    KILL_TOKEN = "1234",
+    DATA_DIR = "/tmp/registry-data"
+}
+
+profile "regdb-test" configures "registry-database" {
+    inputPort RegDB { Location: "local" Protocol: sodep },
+    DATABASE_USERNAME = "",
+    DATABASE_PASSWORD = "",
+    DATABASE_HOST = "",
+    DATABASE_BASE = "/tmp/registry-test.db",
+    DATABASE_DRIVER = "sqlite",
+}

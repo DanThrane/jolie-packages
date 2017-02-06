@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "install-target",
+  "description": "A package which should install the \"publish-target\" package",
+  "version": "0.1.0",
+  "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+  "main": "main.ol",
+  "dependencies": [
+    {
+        "name": "publish-target",
+        "version": "*"
+    }
+  ]
+}

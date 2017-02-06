@@ -1,0 +1,8 @@
+{
+  "private": false,
+  "name": "publish-target",
+  "description": "A package which should be published",
+  "version": "2.0.0",
+  "authors": "Dan Thrane <dthrane@gmail.com>",
+  "main": "main.ol"
+}

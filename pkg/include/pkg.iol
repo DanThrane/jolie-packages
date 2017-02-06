@@ -1,6 +1,7 @@
 type PackRequest: void {
     .packageLocation: string
     .zipLocation: string
+    .name: string
 }
 
 interface IPkg {

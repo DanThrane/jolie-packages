@@ -4,7 +4,6 @@ include "string_utils.iol"
 include "console.iol"
 include "file.iol"
 include "zip_utils.iol"
-include "database.iol"
 include "time.iol"
 include "semver" "semver.iol"
 include "packages" "packages.iol"
@@ -33,6 +32,10 @@ outputPort Authorization {
     Interfaces: IAuthorization
 }
 
+ext outputPort RegDB {
+    Interfaces: IRegistryDatabase
+}
+
 embedded {
     JoliePackage:
         "packages" in Packages {
@@ -46,293 +49,8 @@ embedded {
 constants {
     ENABLE_KILL_COMMAND: bool,
     KILL_TOKEN: string,
-    DATABSE_USERNAME: string,
-    DATABASE_PASSWORD: string,
-    DATABASE_HOST: string,
-    DATABASE_BASE: string,
-    DATABASE_DRIVER: string,
-    FRESH_TOKEN: long
-}
-
-define DatabaseConnect {
-    with (connectionInfo) {
-        .username = DATABSE_USERNAME;
-        .password = DATABASE_PASSWORD;
-        .host = DATABASE_HOST;
-        .database = DATABASE_BASE;
-        .driver = DATABASE_DRIVER
-    };
-    connect@Database(connectionInfo)();
-    undef(connectionInfo)
-}
-
-define DatabaseInit {
-    scope (dbInit) {
-        install(SQLException =>
-            println@Console("Exception when initializing database")();
-            exit 
-        );
-        DatabaseConnect;
-        update@Database("
-            CREATE TABLE IF NOT EXISTS package (
-                packageName     TEXT    PRIMARY KEY
-            );
-        ")(ret);
-
-        update@Database("
-            CREATE TABLE IF NOT EXISTS package_versions (
-                packageName TEXT NOT NULL,
-                major       INTEGER NOT NULL,
-                minor       INTEGER NOT NULL,
-                patch       INTEGER NOT NULL,
-                label       TEXT,
-                description TEXT,
-                license     TEXT    NOT NULL,
-                FOREIGN KEY (packageName) REFERENCES package
-            );
-        ")(ret);
-
-        update@Database("
-            CREATE TABLE IF NOT EXISTS package_dependency (
-              packageName TEXT NOT NULL,
-              major       INT  NOT NULL,
-              minor       INT  NOT NULL,
-              patch       INT  NOT NULL,
-              dependency  TEXT NOT NULL,
-              version     TEXT NOT NULL,
-              type        INT  NOT NULL,
-              PRIMARY KEY (packageName, major, minor, patch)
-            );
-        ")(ret);
-
-        undef(ret)
-    }
-}
-
-/**
-  * @input packageName: string
-  * @input version?: SemVer
-  * @output packageExists: bool
-  */
-define PackageCheckIfExists {
-    DatabaseConnect;
-    if (!is_defined(version)) {
-        containsQuery = "
-            SELECT COUNT(packageName) AS count FROM package WHERE packageName = :packageName;
-        ";
-        containsQuery.packageName = packageName;
-        query@Database(containsQuery)(sqlResponse);
-        packageExists = sqlResponse.row.count == 1;
-
-        undef(sqlResponse);
-        undef(containsQuery)
-    } else {
-        containsQuery = "
-            SELECT
-              package.packageName AS packageName,
-              major,
-              minor,
-              patch,
-              label,
-              description,
-              license
-            FROM
-              package,
-              package_versions
-            WHERE
-              package.packageName = :packageName AND
-              package.packageName = package_versions.packageName AND
-              major = :major AND
-              minor = :minor AND
-              patch = :patch;
-        ";
-        containsQuery.packageName = packageName;
-        containsQuery.major = version.major;
-        containsQuery.minor = version.minor;
-        containsQuery.patch = version.patch;
-        
-        query@Database(containsQuery)(sqlResponse);
-        packageExists = #sqlResponse.row == 1;
-
-        undef(sqlResponse);
-        undef(containsQuery)
-    }
-}
-
-/**
- * @input packageName: string
- * @output packageInformation[0, *]: PackageInformation
- */
-define PackageGetInformation {
-    DatabaseConnect;
-    packageQuery = "
-        SELECT
-          package.packageName AS packageName,
-          major,
-          minor,
-          patch,
-          label,
-          description,
-          license
-        FROM
-          package,
-          package_versions
-        WHERE
-          package.packageName = :packageName AND
-          package.packageName = package_versions.packageName;
-    ";
-    packageQuery.packageName = packageName;
-    query@Database(packageQuery)(sqlResponse);
-    packageInformation -> sqlResponse.row;
-    undef(packageQuery)
-}
-
-/**
- * @output packageInformation[0, *]: PackageInformation
- */
-define PackageGetAll {
-    DatabaseConnect;
-    packageQuery = "
-        SELECT
-          package.packageName AS packageName,
-          major,
-          minor,
-          patch,
-          label,
-          description,
-          license
-        FROM
-          package,
-          package_versions
-        WHERE
-          package.packageName = package_versions.packageName;
-    ";
-    query@Database(packageQuery)(sqlResponse);
-    packageInformation -> sqlResponse.row
-}
-
-/**
- * Checks if the 'package' has a version that the registry will allow. 
- * @input package: Package
- * @output isNewest: bool
- * @output newestVersion?: SemVer
- */
-define PackageCheckVersion {
-    DatabaseConnect;
-    
-    // Returns no rows if input version is the newest, otherwise the newest 
-    // version
-    packageQuery = "
-        SELECT
-          major,
-          minor,
-          patch,
-          label
-        FROM
-          package_versions
-        WHERE
-          packageName = :packageName AND
-          (
-            (major > :major) OR
-            (major = :major AND minor > :minor) OR
-            (major = :major AND minor = :minor AND patch > :patch) OR
-            (major = :major AND minor = :minor AND patch = :patch)
-          )
-        ORDER BY 
-          major DESC, 
-          minor DESC, 
-          patch DESC
-        LIMIT 1;
-    ";
-    packageQuery.packageName = package.name;
-    packageQuery.major = package.version.major;
-    packageQuery.minor = package.version.minor;
-    packageQuery.patch = package.version.patch;
-    packageQuery.label = package.version.label;
-    query@Database(packageQuery)(sqlResponse);
-
-    if (#sqlResponse.row == 0) {
-        isNewest = true
-    } else {
-        isNewest = false;
-        newestVersion.major = sqlResponse.row.major;
-        newestVersion.minor = sqlResponse.row.minor;
-        newestVersion.patch = sqlResponse.row.patch
-    };
-    undef(packageQuery)
-}
-
-/** 
- * @input package: Package
- */
-define PackageInsertVersion {
-    DatabaseConnect;
-    scope (insertion) {
-        install (SQLException => 
-            println@Console("Bad!")()
-        );
-
-        packageInsertion = "
-            INSERT INTO package_versions 
-                (packageName, major, minor, patch, label, description, license)
-            VALUES 
-                (:packageName, :major, :minor, :patch, :label, :description, 
-                 :license);
-        ";
-        packageInsertion.packageName = package.name;
-        packageInsertion.major = package.version.major;
-        packageInsertion.minor = package.version.minor;
-        packageInsertion.patch = package.version.patch;
-        packageInsertion.label = package.version.label;
-        packageInsertion.description = ""; // TODO Missing description from package
-        packageInsertion.license = package.license;
-        update@Database(packageInsertion)(sqlResponse);
-
-        undef(packageInsertion);
-        undef(sqlResponse);
-        undef(packageInformation);
-        undef(packageName)
-    }
-}
-
-/**
- * @input package: Package
- */
-define PackageInsertDependencies {
-    DatabaseConnect;
-    currDependency -> package.dependencies[i];
-    for (i = 0, i < #package.dependencies, i++) {
-        // TODO We cannot allow cross registry dependencies here! 
-        // Or can we. I am really not sure. For now let's assume that we 
-        // can't do cross-registry dependencies for published packages.
-
-        // It would however make sense for a privately published package to use
-        // packages from a default repository. But it really doesn't make sense
-        // the other way around.
-        insertQuery = "
-            INSERT INTO package_dependency
-            (packageName, major, minor, patch, dependency, type, version)
-            VALUES (:packageName, :major, :minor, :patch, :dependency, 
-                    :type, :version); 
-        ";
-        insertQuery.packageName = package.name;
-        insertQuery.major = package.version.major;
-        insertQuery.minor = package.version.minor;
-        insertQuery.patch = package.version.patch;
-        insertQuery.type = currDependency.type;
-
-        insertQuery.dependency = currDependency.name;
-        insertQuery.version = currDependency.version;
-        statements[#statements] << insertQuery
-    };
-
-    if (#statements > 0) {
-        transaction.statement -> statements;
-        executeTransaction@Database(transaction)(ret);
-        undef(statements);
-        undef(insertQuery);
-        undef(transaction)
-    }
+    FRESH_TOKEN: long,
+    DATA_DIR: string
 }
 
 /**
@@ -483,7 +201,7 @@ define GroupeRemoveMember {
 define PackageCreate {
     // Check if package exists
     packageName = packageCreateInput.name;
-    PackageCheckIfExists;
+    checkIfPackageExists@RegDB({ .packageName = packageName })(packageExists);
 
     if (packageExists) {
         throw(RegistryFault, {
@@ -498,20 +216,9 @@ define PackageCreate {
     UserGet;
 
     // Insert package into DB
-    DatabaseConnect;
-    scope (insertion) {
-        install (SQLException => 
-            throw(RegistryFault, {
-                .type = FAULT_BAD_REQUEST,
-                .message = "Package already exists (SQL)"
-            })
-        );
-
-        insertionRequest = "
-            INSERT INTO package (packageName) VALUES (:packageName);
-        ";
-        insertionRequest.packageName = packageName;
-        update@Database(insertionRequest)(ret)
+    scope (s) {
+        install(RegDBFault => throw(RegistryFault, s.RegDBFault));
+        createPackage@RegDB(packageName)()
     };
     
     // Create implicit package maintainer group and insert current user
@@ -536,13 +243,12 @@ define PackageCreate {
 init {
     install(RegistryFault => nullProcess);
     getFileSeparator@File()(FILE_SEP);
-    FOLDER_PACKAGES = "data" + FILE_SEP + "packages";
-    FOLDER_WORK = "data" + FILE_SEP + "work";
+    FOLDER_PACKAGES = DATA_DIR + FILE_SEP + "packages";
+    FOLDER_WORK = DATA_DIR + FILE_SEP + "work";
     global.counter = 0;
 
     mkdir@File(FOLDER_PACKAGES)();
     mkdir@File(FOLDER_WORK)();
-    DatabaseInit;
 
     println@Console("
      _ ____  __  __   ____            _     _              
@@ -599,51 +305,24 @@ main {
     }]
 
     [logout(req)(res) {
-        println@Console("Invalidating token: " + req.token)();
         invalidate@Authorization(req.token)()
     }]
 
-    [createPackage(packageCreateInput)(res) {
-        PackageCreate
-    }]
+    [createPackage(packageCreateInput)() { PackageCreate }]
 
     [getPackageList(req)(res) {
         // TODO Permissions
-        PackageGetAll;
-        res.results -> packageInformation
+        getPackageList@RegDB()(res)
     }]
 
     [getPackageInfo(packageName)(res) {
         // TODO Permissions
-        PackageGetInformation;
-        res.packages -> packageInformation
+        getInformationAboutPackage@RegDB({ .packageName = packageName })(res)
     }]
 
     [query(request)(response) {
         // TODO Permissions
-        DatabaseConnect;
-        databaseQuery = "
-            SELECT
-              package.packageName,
-              package_versions.major,
-              package_versions.minor,
-              package_versions.patch,
-              package_versions.label,
-              package_versions.description,
-              package_versions.license
-            FROM
-              package, package_versions
-            WHERE
-              package.packageName LIKE '%' || :q || '%' AND
-              package_versions.packageName = package.packageName
-            GROUP BY package.packageName
-            ORDER BY
-              package_versions.major, package_versions.minor,
-              package_versions.patch;
-        ";
-        databaseQuery.q = request.query;
-        query@Database(databaseQuery)(databaseResponse);
-        response.results -> databaseResponse.row
+        query@RegDB(request)(response)
     }]
 
     [download(req)(res) {
@@ -678,7 +357,12 @@ main {
         };
 
         // Check if package exists
-        PackageCheckIfExists;
+        with (checkForPackageRequest) {
+            .packageName = packageName;
+            .version << version
+        };
+        checkIfPackageExists@RegDB(checkForPackageRequest)(packageExists);
+
         if (!packageExists) {
             throw(RegistryFault, {
                 .type = FAULT_BAD_REQUEST,
@@ -695,7 +379,7 @@ main {
         if (!pkgExists) {
             throw(RegistryFault, {
                 .type = FAULT_BAD_REQUEST,
-                .message = "Internal server error"
+                .message = "Internal server error (Could not find .pkg)"
             })
         };
 
@@ -714,8 +398,17 @@ main {
 
         // Update: There is not. This is a clear security vulnerability. 
         // This is present in all (Jolie) sodep and http servers
+
+        //
+        // Automatically create package if it does not already exist.
+        // 
+        // This will also assign the correct rights to the user making the 
+        // request.
+        //
         packageName = req.package;
-        PackageCheckIfExists;
+        checkIfPackageExists@RegDB({ 
+            .packageName = packageName 
+        })(packageExists);
 
         if (!packageExists) {
             packageCreateInput.token = req.token;
@@ -723,6 +416,7 @@ main {
             PackageCreate
         };
 
+        // Check user permissions
         hasAnyOfRights@Authorization({
             .token = req.token,
             .check[0].key = "packages." + packageName,
@@ -736,6 +430,7 @@ main {
             })
         };
 
+        // Receive file upload and write to temporary location
         GetSafeWorkingName;
         temporaryNameAndLoc = FOLDER_WORK + FILE_SEP + temporaryName;
         temporaryFileName = temporaryNameAndLoc + ".pkg";
@@ -750,6 +445,12 @@ main {
                 throw(RegistryFault, s.RegistryFault)
             );
 
+            install(RegDBFault =>
+                delete@File(temporaryFileName)();
+                throw(RegistryFault, s.RegDBFault)
+            );
+
+            // Validate package manfiest
             readEntry@ZipUtils({ 
                 .entry = "package.json", 
                 .filename = temporaryFileName
@@ -785,10 +486,14 @@ main {
                 })
             };
 
-            PackageCheckVersion;
-
-            if (!isNewest) {
-                convertToString@SemVer(newestVersion)(versionString);
+            // Check that version is OK. We do not allow downgrading versions
+            verCheckReq.package.name = package.name;
+            verCheckReq.package.version << package.version;
+            comparePackageWithNewestVersion@RegDB(verCheckReq)(verCheckResp);
+            
+            if (!verCheckResp.isNewest) {
+                convertToString@SemVer(verCheckResp.newestVersion)
+                    (versionString);
                 throw(RegistryFault, {
                     .type = FAULT_BAD_REQUEST,
                     .message = "Registry already contains a newer " + 
@@ -797,8 +502,9 @@ main {
                 })
             };
 
-            PackageInsertVersion;
-            PackageInsertDependencies;
+            // Insert package into the various databases
+            insertNewPackage@RegDB(package)();
+
             baseFolder = FOLDER_PACKAGES + FILE_SEP + package.name;
             mkdir@File(baseFolder)();
             rename@File({
@@ -807,46 +513,20 @@ main {
                     package.version.major + "_" + 
                     package.version.minor + "_" + 
                     package.version.patch + ".pkg"
-            })();
-
-            delete@File(temporaryFileName)()
+            })()
         }
     }]
 
     [getDependencies(request)(response) {
-        scope(s) {
-            install(SQLException =>
-                println@Console("SQLException in getDependencies!")();
-                value -> s.SQLException; DebugPrintValue
-            );
-            
-            DatabaseConnect;
-            dependencyQuery = "
-                SELECT
-                  dependency AS name, version, type
-                FROM
-                  package_dependency
-                WHERE
-                  packageName = :packageName AND
-                  major = :major AND
-                  minor = :minor AND
-                  patch = :patch;
-            ";
-            dependencyQuery.packageName = request.packageName;
-            dependencyQuery.major = request.version.major;
-            dependencyQuery.minor = request.version.minor;
-            dependencyQuery.patch = request.version.patch;
-            query@Database(dependencyQuery)(sqlResponse);
-            for (i = 0, i < sqlResponse.row, i++) {
-                sqlResponse.row[i].type = int(sqlResponse.row[i].type)
-            };
-            response.dependencies -> sqlResponse.row
+        scope (s) {
+            install(RegDBFault => throw(RegistryFault, s.RegDBFault));
+            depRequest.package.name = request.packageName;
+            depRequest.package.version << request.version;
+            getDependencies@RegDB(depRequest)(response)
         }
     }]
 
-    [ping(echo)(echo) {
-        nullProcess
-    }]
+    [ping(echo)(echo) { nullProcess }]
 
     [kill(token)() {
         if (ENABLE_KILL_COMMAND && token == KILL_TOKEN) {

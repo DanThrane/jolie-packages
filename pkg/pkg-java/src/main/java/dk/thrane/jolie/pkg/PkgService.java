@@ -39,7 +39,7 @@ public class PkgService extends JavaService {
             throw new FaultException(FAULT_INVALID_ARGUMENT, "Given file path does not lead to a directory!");
         }
 
-        String name = packageDir.getName();
+        String name = request.getFirstChild("name").strValue();
         Path outputPath = new File(outputDir, name + EXTENSION).toPath();
 
         try {

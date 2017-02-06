@@ -6,5 +6,6 @@ profile "default" configures "registry" {
     DATABASE_DRIVER = "sqlite",
     ENABLE_KILL_COMMAND = false,
     KILL_TOKEN = "",
-    FRESH_TOKEN = 60000L
+    FRESH_TOKEN = 60000L,
+    DATA_DIR = "data"
 }

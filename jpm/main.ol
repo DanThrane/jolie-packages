@@ -182,7 +182,7 @@ define DependencyTree {
         
         // Lookup package information from the registry
         getPackageInfo@Registry(name)(info);
-        if (#info.packages == 0) {
+        if (#info.results == 0) {
             throw(ServiceFault, {
                 .type = FAULT_BAD_REQUEST,
                 .message = "Unable to resolve package '" + name + "'. " + 
@@ -209,8 +209,8 @@ define DependencyTree {
         } else {
             // We need to find the best matching version.
             // Start by finding all versions of this package
-            pkgInfo -> info.packages[j];
-            for (j = 0, j < #info.packages, j++) {
+            pkgInfo -> info.results[j];
+            for (j = 0, j < #info.results, j++) {
                 with (version) {
                     .major = pkgInfo.major;
                     .minor = pkgInfo.minor;
@@ -557,9 +557,11 @@ main
             temporaryLocation = "/tmp/"; // TODO Name
             pkgRequest.zipLocation = temporaryLocation;
             pkgRequest.packageLocation = global.path;
+            pkgRequest.name = package.name;
             pack@Pkg(pkgRequest)();
 
-            println@Console("Reading back file from: " + temporaryLocation + ".pkg")();
+            println@Console("Reading back file from: " + temporaryLocation + 
+                pkgRequest.name + ".pkg")();
             readFile@File({
                 .filename = temporaryLocation + package.name + ".pkg",
                 .format = "binary"

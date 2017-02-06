@@ -5,6 +5,7 @@ import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.*
+import org.junit.Assert.*
 
 class JPM(
         val folder: File,
@@ -14,28 +15,56 @@ class JPM(
     companion object {
         val PATTERN = "Error.*! (\\d+).*".toRegex()
 
-        val DEPLOY_REGISTRY = JPM(File(System.getenv("JPM_CLI_HOME"), "../registry"), listOf("start"))
-        val KILL_REGISTRY = JPM(File(System.getenv("JPM_CLI_HOME"), "../registry-admin"),
-                listOf("start", "--deploy", "testenv-kill", "deployment.col"))
+        val PACKAGES_FOLDER_NAME = "jpm_packages"
 
-        fun withRegistry(printStdOut: Boolean = false, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
+        val TEST_DATABASE_LOC = File("/tmp/registry-test.db")
+        val TEST_DATA_DIR = File("/tmp/registry-data")
+        val DEPLOY_REGISTRY = JPM(
+                File(System.getenv("JPM_CLI_HOME"), "../registry"),
+                listOf("start", "--deploy", "reg-test", "test.col")
+        )
+        val KILL_REGISTRY = JPM(
+                File(System.getenv("JPM_CLI_HOME"), "../registry-admin"),
+                listOf("start", "--deploy", "testenv-kill", "deployment.col")
+        )
+
+        fun withRegistry(printIO: Boolean = true, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
             val registryProcess = JPM.DEPLOY_REGISTRY.startProcess()
             var ready = false
+
+            if (TEST_DATABASE_LOC.exists()) {
+                assert(TEST_DATABASE_LOC.delete())
+            }
+
+            if (TEST_DATA_DIR.exists()) {
+                assert(TEST_DATA_DIR.deleteRecursively())
+            }
+            assert(TEST_DATA_DIR.mkdirs())
+
             Thread({
                 BufferedReader(InputStreamReader(registryProcess.inputStream)).forEachLine {
-                    if (printStdOut) println(it)
+                    if (printIO) println(it)
                     if (it.toLowerCase().contains("ready")) ready = true
                     stdOutCallBack(it)
                 }
+
+                BufferedReader(InputStreamReader(registryProcess.errorStream)).forEachLine {
+                    if (printIO) System.err.println(it)
+                }
             }).start()
+
             val timeout = System.currentTimeMillis() + 10000
             while (!ready && System.currentTimeMillis() < timeout) {
                 Thread.sleep(50)
             }
+
             assert(ready)
-            block()
-            JPM.KILL_REGISTRY.run()
-            registryProcess.waitFor()
+            try {
+                block()
+            } finally {
+                JPM.KILL_REGISTRY.run()
+                registryProcess.waitFor()
+            }
         }
     }
 
@@ -73,12 +102,13 @@ class JPM(
         val exceptionLine = stdErr.indexOfFirst { it.startsWith("SEVERE:") && it.contains("jpm/main.ol") }
 
         if (exceptionLine != -1) {
-            val trace = stdErr.takeLast(stdErr.size - exceptionLine).joinToString("\n") { it }
-            throw IllegalStateException("JPM threw an exception: \n$trace")
+            return JPMResult(stdOut, stdErr, -1, "JPM threw an exception")
         }
 
         return JPMResult(stdOut, stdErr, exitCode, message)
     }
+
+    fun runAndAssert(): JPMResult = run().assertSuccess()
 
     private fun readFully(from: InputStream, to: MutableList<String>) = Thread({
         val reader = BufferedReader(InputStreamReader(from))
@@ -91,4 +121,10 @@ class JPMResult(
         val stdErr: List<String>,
         val exitCode: Int,
         val exitMessage: String?
-)
+) {
+    fun assertSuccess(): JPMResult {
+        assertEquals(0, exitCode)
+        assertNull(exitMessage)
+        return this
+    }
+}

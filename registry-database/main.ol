@@ -1,10 +1,18 @@
 include "configuration.iol"
 include "scripts.iol"
 include "database.iol"
+include "console.iol"
+include "db.iol"
+
+execution { concurrent }
+
+ext inputPort RegDB {
+    Interfaces: IRegistryDatabase
+}
 
 define DatabaseConnect {
     with (connectionInfo) {
-        .username = DATABSE_USERNAME;
+        .username = DATABASE_USERNAME;
         .password = DATABASE_PASSWORD;
         .host = DATABASE_HOST;
         .database = DATABASE_BASE;
@@ -37,25 +45,28 @@ init {
 main {
     [query(request)(result) {
         DatabaseConnect;
-        packageQuery = "
+        databaseQuery = "
             SELECT
-              package.packageName AS packageName,
-              major,
-              minor,
-              patch,
-              label,
-              description,
-              license
+              package.packageName,
+              package_versions.major,
+              package_versions.minor,
+              package_versions.patch,
+              package_versions.label,
+              package_versions.description,
+              package_versions.license
             FROM
-              package,
-              package_versions
+              package, package_versions
             WHERE
-              package.packageName = :packageName AND
-              package.packageName = package_versions.packageName;
+              package.packageName LIKE '%' || :q || '%' AND
+              package_versions.packageName = package.packageName
+            GROUP BY package.packageName
+            ORDER BY
+              package_versions.major, package_versions.minor,
+              package_versions.patch;
         ";
-        packageQuery.packageName = packageName;
-        query@Database(packageQuery)(sqlResponse);
-        result.packageInformation << sqlResponse.row
+        databaseQuery.q = request.query;
+        query@Database(databaseQuery)(databaseResponse);
+        result.results << databaseResponse.row
     }]
     
     [checkIfPackageExists(request)(result) {
@@ -71,7 +82,7 @@ main {
             ";
             containsQuery.packageName = request.packageName;
             query@Database(containsQuery)(sqlResponse);
-            result.packageExists = sqlResponse.row.count == 1
+            result = sqlResponse.row.count == 1
         } else {
             containsQuery = "
                 SELECT
@@ -98,7 +109,7 @@ main {
             containsQuery.patch = request.version.patch;
             
             query@Database(containsQuery)(sqlResponse);
-            result.packageExists = #sqlResponse.row == 1
+            result = #sqlResponse.row == 1
         }
     }]
 
@@ -122,7 +133,7 @@ main {
         ";
         packageQuery.packageName = request.packageName;
         query@Database(packageQuery)(sqlResponse);
-        result.packageInformation -> sqlResponse.row
+        result.results -> sqlResponse.row
     }]
 
     [getPackageList()(result) {
@@ -143,7 +154,7 @@ main {
               package.packageName = package_versions.packageName;
         ";
         query@Database(packageQuery)(sqlResponse);
-        result.packageInformation -> sqlResponse.row
+        result.results -> sqlResponse.row
     }]
 
     [comparePackageWithNewestVersion(request)(result) {
@@ -181,8 +192,8 @@ main {
         query@Database(packageQuery)(sqlResponse);
 
         if (#sqlResponse.row == 0) {
-            reuslt.isNewest = true;
-            result.newestVersion << request.version
+            result.isNewest = true;
+            result.newestVersion << request.package.version
         } else {
             result.isNewest = false;
             result.newestVersion.major = sqlResponse.row.major;
@@ -195,7 +206,7 @@ main {
         DatabaseConnect;
         scope (insertion) {
             install (SQLException => 
-                throws(RegDBFault, {
+                throw(RegDBFault, {
                     .type = FAULT_INTERNAL,
                     .message = "Unable to insert package"
                 })
@@ -272,8 +283,7 @@ main {
                 throw(RegDBFault, {
                     .type = FAULT_INTERNAL,
                     .message = "Internal Error"
-                });
-                value -> s.SQLException; DebugPrintValue
+                })
             );
             
             DatabaseConnect;
