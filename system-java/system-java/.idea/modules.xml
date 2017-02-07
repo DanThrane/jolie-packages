@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/system-java.iml" filepath="$PROJECT_DIR$/.idea/modules/system-java.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/system-java_main.iml" filepath="$PROJECT_DIR$/.idea/modules/system-java_main.iml" group="system-java" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/system-java_test.iml" filepath="$PROJECT_DIR$/.idea/modules/system-java_test.iml" group="system-java" />
+    </modules>
+  </component>
+</project>

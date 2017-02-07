@@ -3,5 +3,8 @@
     "version": "0.1.0",
     "private": false,
     "license": "MIT",
-    "main": "main.ol"
+    "main": "main.ol",
+    "dependencies": [
+        { "name": "system-java", "version": "*" }
+    ]
 }

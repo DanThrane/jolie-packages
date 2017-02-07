@@ -8,5 +8,6 @@
     "dependencies": [
         { "name": "packages", "version": "*" },
         { "name": "registry", "version": "*" },
+        { "name": "system-java", "version": "*" }
     ]
 }

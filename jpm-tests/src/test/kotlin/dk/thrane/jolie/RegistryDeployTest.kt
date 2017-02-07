@@ -9,8 +9,7 @@ class RegistryDeployTest {
     @Test
     fun testRegistryDeployment() {
         JPM.withRegistry {
-            val pingResult = JPM(File("."), listOf("ping")).run()
-            assertEquals(0, pingResult.exitCode)
+            val pingResult = JPM(File("."), listOf("ping")).runAndAssert()
             assertThat(pingResult.stdOut, hasItem("OK"))
         }
     }

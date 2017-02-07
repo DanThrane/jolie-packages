@@ -10,6 +10,7 @@ include "jpm-utils" "utils.iol"
 include "jpm-downloader" "downloader.iol"
 include "execution" "execution.iol"
 include "pkg" "pkg.iol"
+include "system-java" "system.iol"
 
 execution { sequential }
 
@@ -261,7 +262,8 @@ init {
     // Don't handle ServiceFaults just send them back to the invoker
     install(ServiceFault => nullProcess);
     getFileSeparator@File()(FILE_SEP);
-    HOME = "/home/dan";
+    getUserHomeDirectory@System()(HOME);
+    getTemporaryDirectory@System()(TEMP);
     TOKENS_FILE = HOME + FILE_SEP + ".jpmtokens";
     exists@File(TOKENS_FILE)(hasTokens);
     if (hasTokens) {
@@ -552,7 +554,7 @@ main {
             TokensRequire;
 
             println@Console("Creating file")();
-            temporaryLocation = "/tmp/"; // TODO Name
+            temporaryLocation = TEMP + FILE_SEP;
             pkgRequest.zipLocation = temporaryLocation;
             pkgRequest.packageLocation = global.path;
             pkgRequest.name = package.name;

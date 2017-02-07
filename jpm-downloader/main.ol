@@ -4,6 +4,7 @@ include "console.iol"
 include "string_utils.iol"
 include "file.iol"
 include "zip_utils.iol"
+include "system-java" "system.iol"
 
 execution { sequential }
 
@@ -20,7 +21,7 @@ inputPort Downloader {
 init {
     install(DownloaderFault => nullProcess);
     getFileSeparator@File()(FILE_SEP);
-    PATH_HOME = "/home/dan"; // TODO Use something better
+    getUserHomeDirectory@System()(PATH_HOME);
     PATH_CACHE = PATH_HOME + FILE_SEP + ".jpm_cache";
     PATH_KNOWN_REGISTRIES = PATH_CACHE + FILE_SEP + "registries.json";
 
