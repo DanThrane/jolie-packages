@@ -3,5 +3,10 @@
     "description": "A web interface for JPM.",
     "name": "jpm-web",
     "private": false,
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "main": "main.ol",
+    "dependencies": [
+        { "name": "mustache", "version": "*" },
+        { "name": "jpm", "version": "*" }
+    ]
 }

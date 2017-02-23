@@ -1,0 +1,25 @@
+group 'dk.thrane.jolie'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    compile files("/usr/lib/jolie/jolie.jar")
+    compile files("/usr/lib/jolie/javaServices/coreJavaServices.jar")
+    compile 'com.github.spullara.mustache.java:compiler:0.9.2'
+}
+
+jar {
+    from {
+        configurations.compile.findAll {
+            it.name != "jolie.jar" && it.name != "coreJavaServices.jar"
+        }.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}

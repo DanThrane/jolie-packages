@@ -424,6 +424,7 @@ main {
                 nextArgument = request.args[i]
             }
         };
+        value -> command; DebugPrintValue;
 
         executionRequest.directory = global.path;
         executionRequest.suppress = false;
