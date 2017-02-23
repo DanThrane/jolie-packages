@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+tmux-int joliedev 0 1

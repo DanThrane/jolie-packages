@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+tmux-cmd joliedev 0 1 \
+        "(cd registry ; \
+          jpm start --deploy reg-development config.col)"

@@ -28,7 +28,7 @@ class JPM(
                 listOf("start", "--deploy", "testenv-kill", "deployment.col")
         )
 
-        fun withRegistry(printIO: Boolean = true, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
+        fun withRegistry(printIO: Boolean = false, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
             val registryProcess = JPM.DEPLOY_REGISTRY.startProcess()
             var ready = false
 

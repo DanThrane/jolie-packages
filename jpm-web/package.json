@@ -1,0 +1,7 @@
+{
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "description": "A web interface for JPM.",
+    "name": "jpm-web",
+    "private": false,
+    "version": "0.1.0"
+}

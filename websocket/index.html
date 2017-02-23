@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing</title>
+</head>
+<body>
+
+<pre><code id="code-block"></code></pre>
+
+<script type="text/javascript">
+    var codeBlock = document.getElementById("code-block");
+    console.log("FUFUFU");
+    codeBlock.textContent += "Foobar";
+    var exampleSocket = new WebSocket("ws://localhost:8080");
+    exampleSocket.onmessage = function(e) {
+        //codeBlock.textContent += "\n" + e.data;
+        //window.scrollTo(0,document.body.scrollHeight);
+        codeBlock.textContent = e.data;
+    };
+</script>
+</body>
+</html>
