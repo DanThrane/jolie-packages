@@ -1,0 +1,29 @@
+<h2>Package Information</h2>
+
+<div class="ui segment">
+    <ul class="ui list">
+        <li>
+            <b>Package name:</b> {{name}}
+        </li>
+        <li>
+            <b>Version:</b> {{version.major}}.{{version.minor}}.{{version.patch}}
+        </li>
+        <li>
+            <b>Description:</b> {{description}}
+        </li>
+        <li>
+            <b>License:</b> {{license}}
+        </li>
+        <li>
+            <b>Dependencies</b>
+            <ul>
+                {{#dependencies}}
+                <li>
+                    {{name}}@{{version}}
+                </li>
+                {{/dependencies}}
+            </ul>
+        </li>
+    </ul>
+</div>
+

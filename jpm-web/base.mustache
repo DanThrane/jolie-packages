@@ -2,23 +2,34 @@
 <html>
     <head>
         <title>JPM | {{title}}</title>
-        {{head}}
+        {{& head}}
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.7/semantic.min.js"></script>
         <link href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.7/semantic.min.css" rel="stylesheet">
     </head>
     <body>
         <div class="ui attached stackable menu pointing">
             <div class="ui container">
-                <a href="#" class="item">
+                <a href="/" class="item">
                     <i class="home icon"></i>
                     Home
                 </a>
-                <a href="#" class="item">Item 2</a>
-                <a href="#" class="item">Item 3</a>
+                <div class="right menu">
+                    <div class="ui right aligned category item">
+                        Pkg: {{pkg.name}}@{{pkg.version.major}}.{{pkg.version.minor}}.{{pkg.version.patch}}
+                    </div>
+                    <div class="ui right aligned category item">
+                        <form action="/search" method="get">
+                            <div class="ui transparent icon input">
+                                <input type="text" class="text" value="{{req.q}}" name="q">
+                                <i class="search link icon"></i>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="ui container">
-            {{body}}
+        <div class="ui container" style="margin-top: 20px;">
+            {{& body}}
         </div>
     </body>
 </html>

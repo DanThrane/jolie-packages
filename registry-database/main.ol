@@ -226,8 +226,7 @@ main {
             packageInsertion.minor = package.version.minor;
             packageInsertion.patch = package.version.patch;
             packageInsertion.label = package.version.label;
-            // TODO Missing description from package
-            packageInsertion.description = ""; 
+            packageInsertion.description = package.description; 
             packageInsertion.license = package.license;
             statements[#statements] << packageInsertion;
             

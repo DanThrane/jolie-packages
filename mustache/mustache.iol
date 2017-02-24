@@ -1,6 +1,6 @@
 type MustacheRenderRequest: void {
     .handle: int
-    .model: undefined
+    .model?: undefined
 }
 
 interface IMustache {

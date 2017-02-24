@@ -1,0 +1,31 @@
+<h1>Showing Results for '{{q}}'</h1>
+
+{{#results.registries}}
+<h2>Results from repository: {{name}}</h2>
+
+<div class="ui cards">
+    {{#results}}
+    <div class="card">
+        <div class="content">
+            <img src="http://placekitten.com/64/64" alt="" class="right floated mini ui image">
+            <div class="header">{{packageName}}</div>
+            <div class="meta">
+                {{license}} &mdash; {{major}}.{{minor}}.{{patch}}
+            </div>
+            <div class="description">
+                <p>{{description}}</p>
+                <br />
+            </div>
+            <div class="extra content">
+                <div class="ui two buttons">
+                    <div class="ui basic button">More info</div>
+                    <div class="ui basic green button">Install</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{/results}}
+</div>
+
+{{/results.registries}}
+

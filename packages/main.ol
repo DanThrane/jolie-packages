@@ -25,7 +25,7 @@ interface IValidationUtil {
 
 outputPort ValidationUtil {
     Interfaces: IValidationUtil
-}   
+}
 
 constants {
     TYPE_STRING = 0,
@@ -46,10 +46,10 @@ embedded {
  */
 define ValidationCheckForErrors {
     hasErrors = false;
-    // We need to save the old index and restore it later. 
-    // Otherwise we will have bugs. Even worse, we can't use oldI everywhere 
+    // We need to save the old index and restore it later.
+    // Otherwise we will have bugs. Even worse, we can't use oldI everywhere
     // if we nest them :-)
-    oldI = i; 
+    oldI = i;
     for (i = 0, !hasErrors && i < #report.items, i++) {
         if (report.items[i].type == VALIDATION_ERROR) {
             hasErrors = true
@@ -67,9 +67,9 @@ init
 main
 {
     [validate(request)(response) {
-        // TODO FIXME We shouldn't allow multiple dependencies with the same 
+        // TODO FIXME We shouldn't allow multiple dependencies with the same
         // name, even if they are from different registries
-        
+
         nextItem -> response.items[#response.items];
 
         scope (parsing) {
@@ -79,7 +79,7 @@ main
                     .message = "Error parsing package.json"
                 }
             );
-            
+
             getJsonValue@JsonUtils(request.data)(file)
         };
 
@@ -89,6 +89,24 @@ main
             // Validate name
             validateName@ValidationUtil(file)(response);
             packageBuilder.name = file.name;
+
+            // Validate description
+            validationRequest.value -> file;
+            validationRequest.child = "description";
+            validationRequest.type = TYPE_STRING;
+            optionalChildOfType@ValidationUtil(validationRequest)
+                (hasDescription);
+
+            if (hasDescription) {
+                if (is_defined(file.description)) {
+                    packageBuilder.description = file.description
+                }
+            } else {
+                nextItem << {
+                    .type = VALIDATION_ERROR,
+                    .message = "'description' field must be of type string"
+                }
+            };
 
             // Validate version
             validationRequest.value -> file;
@@ -131,8 +149,8 @@ main
                 if (!validLicenseIdentifier) {
                     nextItem << {
                         .type = VALIDATION_ERROR,
-                        .message = "'" + file.license + "' is not a valid license identifier. See " + 
-                            "https://spdx.org/licenses/ for a complete list of valid identifiers" 
+                        .message = "'" + file.license + "' is not a valid license identifier. See " +
+                            "https://spdx.org/licenses/ for a complete list of valid identifiers"
                     }
                 } else {
                     packageBuilder.license = file.license
@@ -183,7 +201,7 @@ main
                 }
             };
             validateAuthors@ValidationUtil(file)(authorsResp);
-            
+
             for (i = 0, i < #authorsResp.items, i++) {
                 nextItem << authorsResp.items[i]
             };
@@ -195,9 +213,9 @@ main
 
             // Validate registries
 
-            // Don't really need to know where, we just need an entry for 
+            // Don't really need to know where, we just need an entry for
             // public
-            knownRegistries.public.location = "?"; 
+            knownRegistries.public.location = "?";
             if (is_defined(file.registries)) {
                 registry -> file.registries[i];
                 for (i = 0, i < #file.registries, i++) {
@@ -210,7 +228,7 @@ main
                     if (!validNameType) {
                         nextItem << {
                             .type = VALIDATION_ERROR,
-                            .message = "'registries[" + i + "].name' must be of type string" 
+                            .message = "'registries[" + i + "].name' must be of type string"
                         }
                     };
 
@@ -257,7 +275,7 @@ main
                     packageBuilder.registries[#packageBuilder.registries] << packageRegistry
                 }
             };
-            
+
             // Validate dependencies
             if (is_defined(file.dependencies)) {
                 dependency -> file.dependencies[i];
@@ -318,7 +336,7 @@ main
                             if (!is_defined(knownRegistries.(dependency.registry))) {
                                 nextItem << {
                                     .type = VALIDATION_ERROR,
-                                    .message = "'dependencies[" + i +"].registry' contains an unknown registry '" + 
+                                    .message = "'dependencies[" + i +"].registry' contains an unknown registry '" +
                                         dependency.registry + "'"
                                 }
                             } else {
@@ -336,7 +354,7 @@ main
                         } else {
                             nextItem << {
                                 .type = VALIDATION_ERROR,
-                                .message = "'dependencies[" + i +"].type' is " + 
+                                .message = "'dependencies[" + i +"].type' is " +
                                     "unknown'"
                             }
                         }

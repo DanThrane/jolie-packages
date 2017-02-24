@@ -502,6 +502,9 @@ main {
                 })
             };
 
+            valueToPrettyString@StringUtils(package)(prettyPackage);
+            println@Console(prettyPackage)();
+
             // Insert package into the various databases
             insertNewPackage@RegDB(package)();
 

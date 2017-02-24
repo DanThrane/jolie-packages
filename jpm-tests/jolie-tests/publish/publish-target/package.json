@@ -4,5 +4,6 @@
   "description": "A package which should be published",
   "version": "0.1.0",
   "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
-  "main": "main.ol"
+  "main": "main.ol",
+  "license": "MIT"
 }

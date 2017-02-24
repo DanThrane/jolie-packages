@@ -46,7 +46,7 @@ public class MustacheService extends JavaService {
     @RequestResponse
     public String renderTemplate(Value request) throws FaultException {
         int handle = request.getFirstChild("handle").intValue();
-        Value model = request.getFirstChild("model");
+        Value model = request.hasChildren("model") ? request.getFirstChild("model") : null;
 
         Mustache template = templates[handle];
         if (template == null) {
@@ -72,11 +72,16 @@ public class MustacheService extends JavaService {
     }
 
     private Object convertValue(Value model) {
-        if (model.children().isEmpty()) {
+        if (model == null) {
+            return null;
+        } else if (model.children().isEmpty()) {
             return model.valueObject();
         } else {
             Map<String, Object> result = new HashMap<>();
             model.children().forEach((k, v) -> result.put(k, convertVector(v)));
+            if (model.valueObject() != null) {
+                result.put("$", model.valueObject());
+            }
             return result;
         }
     }

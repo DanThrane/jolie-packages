@@ -38,11 +38,13 @@ embedded {
 }
 
 define LoadTemplates {
+    println@Console("Reloading templates!")();
     // Compile templates
     reset@Mustache()();
     compileTemplateFromFile@Mustache("base.mustache")(templates.base);
     compileTemplateFromFile@Mustache("test.mustache")(templates.test);
     compileTemplateFromFile@Mustache("search.mustache")(templates.search);
+    compileTemplateFromFile@Mustache("info.mustache")(templates.info);
     compileTemplateFromFile@Mustache
         ("search_results.mustache")(templates.searchResults)
 }
@@ -59,6 +61,8 @@ define Render {
     baseRenderRequest.model.body -> Render.body;
     baseRenderRequest.model.head -> Render.head;
     baseRenderRequest.handle = templates.base;
+    baseRenderRequest.model.pkg -> global.currentPackage;
+    baseRenderRequest.model.req -> req.data;
     renderTemplate@Mustache(baseRenderRequest)(res);
 
     undef(Render)
@@ -67,27 +71,37 @@ define Render {
 init {
     // Set the default format as JSON
     format = "json";
-    LoadTemplates
+    LoadTemplates;
+    setContext@JPM(args[0])();
+    pkgInfo@JPM()(global.currentPackage)
 }
 
 main {
     [get(req)(res) {
-        renderReq.handle = templates.test;
-        with (renderReq.model) {
-            .testing[0] = "1";
-            .testing[1] = "2";
-            .testing[2] = "C";
-            .foo = "foo";
-            .bar = "bar";
-            .nested[0].name = "foo";
-            .nested[0].count = 42;
-            .nested[1].name = "bar";
-            .nested[1].count = 1337
-        };
-        renderTemplate@Mustache(renderReq)(Render.body);
-        Render.title = "Home";
+        if (req.operation == "search") {
+            query@JPM({ .query = req.data.q })(renderReq.model.results);
+            renderReq.handle = templates.searchResults;
+            renderReq.model.q = req.data.q;
+            valueToPrettyString@StringUtils(renderReq.model.results)(pretty);
+            println@Console(pretty)();
+            renderTemplate@Mustache(renderReq)(Render.body);
+            Render.title = "Results";
 
-        Render
+            Render
+        } else if (req.operation == "") {
+            renderReq.handle = templates.info;
+            renderReq.model << global.currentPackage;
+            renderTemplate@Mustache(renderReq)(Render.body);
+            Render.title = "Home";
+
+            Render
+        } else {
+            status = 404;
+            Render.body = "404 Not Found";
+            Render.title = "Not Found";
+
+            Render
+        }
     }]
 
     [post(req)(res) {

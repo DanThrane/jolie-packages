@@ -34,13 +34,14 @@ type Package: void {
     .license?: LicenseIdentifier
     .private: bool
     .main?: string
+    .description?: string
     .authors[1, *]: Author
     .registries[0, *]: Registry
     .dependencies[0, *]: Dependency
 }
 
 type ValidationRequest: void {
-    .data: any 
+    .data: any
 }
 
 type ValidationItemType: int

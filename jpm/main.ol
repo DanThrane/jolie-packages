@@ -301,7 +301,9 @@ main {
         if (hasPackage) {
             currRegistry -> package.registries[i];
             for (i = 0, i < #package.registries, i++) {
-                registries[#registries] << currRegistry
+                if (currRegistry.name != "public") {
+                    registries[#registries] << currRegistry
+                }
             }
         };
 
@@ -373,6 +375,10 @@ main {
             .filename = global.path + FILE_SEP + request.name + FILE_SEP + 
                 "package.json"
         })()
+    }]
+
+    [pkgInfo()(package) {
+        PackageRequired
     }]
 
     [start(request)() {
