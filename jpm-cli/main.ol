@@ -57,7 +57,12 @@ main {
     setContext@JPM(args[0])();
 
     // Parse arguments
-    command = args[1];
+    if (#args == 1) {
+        command = "help"
+    } else {
+        command = args[1]
+    };
+
     for (i = 2, i < #args, i++) {
         startsWith@StringUtils(args[i] { .prefix = "--" })(isOption);
 

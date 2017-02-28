@@ -1,4 +1,22 @@
-    // Include commands
+// Include commands
+include "init.ol"
+include "install.ol"
+include "publish.ol"
+include "search.ol"
+include "start.ol"
+include "login.ol"
+include "register.ol"
+include "logout.ol"
+include "whoami.ol"
+include "cache.ol"
+include "ping.ol"
+// help command must be last
+include "help.ol"
+
+define HandleCommand {
+    handled = false;
+
+    // begin user defined commands
     HandleInitCommand;
     HandleInstallCommand;
     HandlePublishCommand;

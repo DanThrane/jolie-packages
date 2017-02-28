@@ -26,8 +26,9 @@ define HandleStartCommand {
         // TODO This is not well supported. We need a way of consuming the
         // options
         i = 0;
-        for (i = i, i < #args, i++) {
-            startReq.args[#startReq.args] = args[i]
+        if (isDeploying) i = deployIdx + 3;
+        for (i = i, i < #command.args, i++) {
+            startReq.args[#startReq.args] = command.args[i]
         };
 
         start@JPM(startReq)()
