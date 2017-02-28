@@ -1,4 +1,4 @@
-// Include commands
+    // Include commands
     HandleInitCommand;
     HandleInstallCommand;
     HandlePublishCommand;
