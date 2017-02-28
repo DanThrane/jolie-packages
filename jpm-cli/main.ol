@@ -7,6 +7,8 @@ include "tables" "tables.iol"
 include "semver" "semver.iol"
 include "console-ui" "console_ui.iol"
 
+include "argument-parser.iol"
+
 outputPort JPM {
     Interfaces: IJPM
 }
@@ -58,11 +60,14 @@ main {
 
     // Parse arguments
     if (#args == 1) {
-        command = "help"
-    } else {
-        command = args[1]
+        args[1] = "help"
     };
 
+    parseRequest.args -> args;
+    parseRequest.begin = 2;
+    parse@ArgumentParser(parseRequest)(command);
+    command = args[1];
+   /*
     for (i = 2, i < #args, i++) {
         startsWith@StringUtils(args[i] { .prefix = "--" })(isOption);
 
@@ -75,6 +80,7 @@ main {
 
         command.args[i - 2] = args[i]
     };
+    */
 
     HandleCommand
 }

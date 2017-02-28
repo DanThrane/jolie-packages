@@ -16,18 +16,20 @@ define HandleStartCommand {
     if (command == "start") {
         handled = true;
 
-        isDeploying = is_defined(command.options.("deploy"));
+        with (consumeRequest) {
+            .parsed << command;
+            .options.("deploy").count = 2
+        };
+        consumeRequest.parsed = null;
+        consumeOptions@ArgumentParser(consumeRequest)(command);
+
+        isDeploying = is_defined(command.options.deploy);
         if (isDeploying) {
-            deployIdx = command.options.("deploy");
-            startReq.deployment.profile = command.args[deployIdx + 1];
-            startReq.deployment.file = command.args[deployIdx + 2]
+            startReq.deployment.profile = command.options.deploy[0];
+            startReq.deployment.file = command.options.deploy[1]
         };
 
-        // TODO This is not well supported. We need a way of consuming the
-        // options
-        i = 0;
-        if (isDeploying) i = deployIdx + 3;
-        for (i = i, i < #command.args, i++) {
+        for (i = 0, i < #command.args, i++) {
             startReq.args[#startReq.args] = command.args[i]
         };
 

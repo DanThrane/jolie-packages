@@ -10,6 +10,7 @@ include "logout.ol"
 include "whoami.ol"
 include "cache.ol"
 include "ping.ol"
+include "test.ol"
 // help command must be last
 include "help.ol"
 
@@ -17,6 +18,7 @@ define HandleCommand {
     handled = false;
 
     // begin user defined commands
+    HandleTestCommand;
     HandleInitCommand;
     HandleInstallCommand;
     HandlePublishCommand;
