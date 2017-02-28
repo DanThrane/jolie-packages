@@ -70,6 +70,6 @@ interface IJPM {
             throws ServiceFault(ErrorMessage),
         publish(JPMPublishRequest)(void) throws ServiceFault(ErrorMessage),
         clearCache(void)(void),
-        ping(void)(void) throws ServiceFault(ErrorMessage),
+        ping(string)(void) throws ServiceFault(ErrorMessage),
         pkgInfo(void)(Package)
 }

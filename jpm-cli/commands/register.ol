@@ -15,13 +15,22 @@ define HandleRegisterCommand {
     if (command == "register") {
         handled = true;
 
-        if (#args >= 4) {
-            registrationRequest.username = args[2];
-            registrationRequest.password = args[3];
-            if (#args == 5) {
-                registrationRequest.registry = args[4]
-            }
-        } else {
+        with (consumeRequest) {
+            .parsed << command;
+            .options.registry.count = 1
+        };
+        consumeRequest.parsed = null;
+        consumeOptions@ArgumentParser(consumeRequest)(command);
+
+        registry -> command.options.registry;
+        if (!is_defined(registry)) registry = "public";
+
+        registrationRequest.registry = registry;
+
+        if (#command.args == 2) {
+            registrationRequest.username = command.args[0];
+            registrationRequest.password = command.args[1]
+        } else if (#command.args == 0) {
             displayPrompt@ConsoleUI("Username")(registrationRequest.username);
             displayPasswordPrompt@ConsoleUI("Password")
                 (registrationRequest.password);
@@ -31,12 +40,14 @@ define HandleRegisterCommand {
                     .type = 400,
                     .message = "Passwords do not match"
                 })
-            };
-
-            if (#args == 3) {
-                registrationRequest.registry = args[2]
             }
+        } else {
+            throw(CLIFault, {
+                .type = 400,
+                .message = "Must pass both username and password!"
+            })
         };
+
         register@JPM(registrationRequest)(token);
         println@Console(token)()
     }

@@ -40,12 +40,13 @@ main {
     }]
 
     [consumeOptions(req)(res) {
-        remainingOptions = req.parsed.options;
+        remainingOptions << req.parsed.options;
 
         currentOption -> req.options.(optionKey);
         foreach (optionKey : req.options) {
             if (is_defined(req.parsed.options.(optionKey))) {
                 // Option exists, consume parameters
+                undef(remainingOptions.(optionKey));
                 baseIndex = req.parsed.options.(optionKey);
                 skip.(baseIndex) = true;
                 for (i = 1, i <= currentOption.count, i++) {
@@ -69,6 +70,13 @@ main {
             if (!is_defined(skip.(i))) {
                 res.args[#res.args] = req.parsed.args[i]
             }
+        };
+
+        foreach (o : remainingOptions) {
+            throw(CLIFault, {
+                    .type = 400,
+                    .message = "Unknown option '" + o + "'"
+            })
         }
     }]
 }

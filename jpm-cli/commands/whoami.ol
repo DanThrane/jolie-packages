@@ -14,7 +14,17 @@ define HandleWhoamiCommand {
     if (command == "whoami") {
         handled = true;
 
-        whoami@JPM()(res);
+        with (consumeRequest) {
+            .parsed << command;
+            .options.registry.count = 1
+        };
+        consumeRequest.parsed = null;
+        consumeOptions@ArgumentParser(consumeRequest)(command);
+
+        registry -> command.options.registry;
+        if (!is_defined(registry)) registry = "public";
+
+        whoami@JPM({ .registry = registry })(res);
         println@Console(res)()
     }
 }

@@ -15,22 +15,34 @@ define HandleLoginCommand {
     if (command == "login") {
         handled = true;
 
-        // TODO Use new arguments
-        if (#args >= 4) {
-            authenticationRequest.username = args[2];
-            authenticationRequest.password = args[3];
-            if (#args == 5) {
-                authenticationRequest.registry = args[4]
-            }
-        } else {
+        with (consumeRequest) {
+            .parsed << command;
+            .options.registry.count = 1
+        };
+        consumeRequest.parsed = null;
+        consumeOptions@ArgumentParser(consumeRequest)(command);
+
+        registry -> command.options.registry;
+        if (!is_defined(registry)) registry = "public";
+
+        authenticationRequest.registry = registry;
+
+        if (#command.args == 2) {
+            authenticationRequest.username = command.args[0];
+            authenticationRequest.password = command.args[1]
+        } else if (#command.args == 0) {
             displayPrompt@ConsoleUI("Username")
                 (authenticationRequest.username);
             displayPasswordPrompt@ConsoleUI("Password")
-                (authenticationRequest.password);
-            if (#args == 3) {
-                authenticationRequest.registry = args[2]
-            }
-        }
+                (authenticationRequest.password)
+        } else {
+            throw(CLIFault, {
+                .type = 400,
+                .message = "Must pass both username and password"
+            })
+        };
+
+        authenticate@JPM(authenticationRequest)()
     }
 }
 

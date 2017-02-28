@@ -585,7 +585,7 @@ main {
 
     [clearCache()() { clearCache@Downloader()() }]
 
-    [ping()() {
+    [ping(registryName)() {
         scope (s) {
             install(IOException =>
                 throw(ServiceFault, {
@@ -593,7 +593,6 @@ main {
                     .message = "Unable to contact registry"
                 })
             );
-            registryName = "public";
             RegistrySetLocation;
             pingMessage = "ping";
             ping@Registry(pingMessage)(output);
