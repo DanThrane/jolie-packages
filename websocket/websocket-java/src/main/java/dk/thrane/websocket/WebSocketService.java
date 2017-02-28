@@ -139,7 +139,8 @@ public class WebSocketService extends JavaService {
             protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
                 try {
                     onMessage(channel, message);
-                } catch (FaultException ignored) {}
+                } catch (FaultException ignored) {
+                }
             }
         });
         channel.resumeReceives();
