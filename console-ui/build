@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+library_name=console-ui-java
+rm -rf lib
+cd $library_name
+gradle jar
+cd ..
+mkdir lib
+cp $library_name/build/libs/*.jar lib

@@ -1,0 +1,7 @@
+{
+    "name": "console-ui",
+    "version": "1.0.0",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "license": "MIT",
+    "private": false
+}
