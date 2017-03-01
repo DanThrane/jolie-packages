@@ -10,12 +10,14 @@ Command specific help: jpm help <COMMAND>
 
 Available commands:
 -------------------
-
 ";
     currentHelpText -> global.helpText.(command);
     foreach (command : global.helpText) {
-        builder += command + "\t\t" + currentHelpText.short + "\n"
+        builder += "%-15s%s\n";
+        builder.args[#builder.args] = command;
+        builder.args[#builder.args] = currentHelpText.short
     };
+    format@ConsoleUI(builder)(builder);
 
     global.helpText.("help") = builder;
     undef(builder)

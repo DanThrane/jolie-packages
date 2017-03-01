@@ -135,7 +135,8 @@ main
             validationRequest.value -> file;
             validationRequest.child = "license";
             validationRequest.type = TYPE_STRING;
-            optionalChildOfType@ValidationUtil(validationRequest)(validLicenseType);
+            optionalChildOfType@ValidationUtil(validationRequest)
+                (validLicenseType);
 
             if (!validLicenseType) {
                 nextItem << {
@@ -145,12 +146,15 @@ main
             };
 
             if (is_defined(file.license)) {
-                isValidLicenseIdentifier@ValidationUtil(file.license)(validLicenseIdentifier);
+                isValidLicenseIdentifier@ValidationUtil(file.license)
+                    (validLicenseIdentifier);
                 if (!validLicenseIdentifier) {
                     nextItem << {
                         .type = VALIDATION_ERROR,
-                        .message = "'" + file.license + "' is not a valid license identifier. See " +
-                            "https://spdx.org/licenses/ for a complete list of valid identifiers"
+                        .message = "'" + file.license +
+                            "' is not a valid license identifier. See " +
+                            "https://spdx.org/licenses/ for a complete list " +
+                            "of valid identifiers"
                     }
                 } else {
                     packageBuilder.license = file.license
@@ -161,7 +165,8 @@ main
             validationRequest.value -> file;
             validationRequest.child = "private";
             validationRequest.type  = TYPE_BOOL;
-            optionalChildOfType@ValidationUtil(validationRequest)(validPrivateType);
+            optionalChildOfType@ValidationUtil(validationRequest)
+                (validPrivateType);
 
             if (!validPrivateType) {
                 nextItem << {
@@ -180,7 +185,8 @@ main
             validationRequest.value -> file;
             validationRequest.child = "main";
             validationRequest.type  = TYPE_STRING;
-            optionalChildOfType@ValidationUtil(validationRequest)(validMainType);
+            optionalChildOfType@ValidationUtil(validationRequest)
+                (validMainType);
 
             if (!validMainType) {
                 nextItem << {
@@ -216,154 +222,172 @@ main
             // Don't really need to know where, we just need an entry for
             // public
             knownRegistries.public.location = "?";
-            if (is_defined(file.registries)) {
-                registry -> file.registries[i];
-                for (i = 0, i < #file.registries, i++) {
-                    // registry.name
-                    validationRequest.value -> registry;
-                    validationRequest.child = "name";
-                    validationRequest.type = TYPE_STRING;
-                    requireChildOfType@ValidationUtil(validationRequest)(validNameType);
 
-                    if (!validNameType) {
+            registry -> file.registries[i];
+            for (i = 0, i < #file.registries, i++) {
+                // registry.name
+                validationRequest.value -> registry;
+                validationRequest.child = "name";
+                validationRequest.type = TYPE_STRING;
+                requireChildOfType@ValidationUtil(validationRequest)
+                    (validNameType);
+
+                if (!validNameType) {
+                    nextItem << {
+                        .type = VALIDATION_ERROR,
+                        .message = "'registries[" + i +
+                            "].name' must be of type string"
+                    }
+                };
+
+                // registry.location
+                validationRequest.value -> registry;
+                validationRequest.child = "location";
+                validationRequest.type = TYPE_STRING;
+                requireChildOfType@ValidationUtil(validationRequest)
+                    (validLocationType);
+
+                if (!validLocationType) {
+                    nextItem << {
+                        .type = VALIDATION_ERROR,
+                        .message = "'registries[" + i +
+                            "].location' must be of type string"
+                    }
+                } else {
+                    // TODO not sure the constraints put on URIs are currently
+                    // valid
+                    validateURI@ValidationUtil(registry.location)
+                        (validLocation);
+                    if (!validLocation) {
                         nextItem << {
                             .type = VALIDATION_ERROR,
-                            .message = "'registries[" + i + "].name' must be of type string"
+                            .message = "'registries[" + i +
+                                "].location' must be a valid URI"
                         }
-                    };
+                    }
+                };
 
-                    // registry.location
-                    validationRequest.value -> registry;
-                    validationRequest.child = "location";
-                    validationRequest.type = TYPE_STRING;
-                    requireChildOfType@ValidationUtil(validationRequest)(validLocationType);
+                if (registry.name == "public") {
+                    nextItem << {
+                        .type = VALIDATION_ERROR,
+                        .message = "'registries[" + i +
+                            "].name' cannot be 'public'!"
+                    }
+                };
 
-                    if (!validLocationType) {
-                        nextItem << {
-                            .type = VALIDATION_ERROR,
-                            .message = "'registries[" + i + "].location' must be of type string"
-                        }
-                    } else {
-                        // TODO not sure the constraints put on URIs are currently valid
-                        validateURI@ValidationUtil(registry.location)(validLocation);
-                        if (!validLocation) {
-                            nextItem << {
-                                .type = VALIDATION_ERROR,
-                                .message = "'registries[" + i + "].location' must be a valid URI"
-                            }
-                        }
-                    };
+                if (is_defined(knownRegistries.(registry.name))) {
+                    nextItem << {
+                        .type = VALIDATION_WARNING,
+                        .message = "'registries[" + i +
+                            "].name' is overriding a previous registry " +
+                            "definition!"
+                    }
+                };
 
-                    if (registry.name == "public") {
-                        nextItem << {
-                            .type = VALIDATION_ERROR,
-                            .message = "'registries[" + i + "].name' cannot be 'public'!"
-                        }
-                    };
+                knownRegistries.(registry.name).location = registry.location;
 
-                    if (is_defined(knownRegistries.(registry.name))) {
-                        nextItem << {
-                            .type = VALIDATION_WARNING,
-                            .message = "'registries[" + i + "].name' is overriding a previous registry definition!"
-                        }
-                    };
-
-                    knownRegistries.(registry.name).location = registry.location;
-
-                    packageRegistry.name = registry.name;
-                    packageRegistry.location = registry.location;
-                    packageBuilder.registries[#packageBuilder.registries] << packageRegistry
-                }
+                packageRegistry.name = registry.name;
+                packageRegistry.location = registry.location;
+                packageBuilder.registries[#packageBuilder.registries] <<
+                    packageRegistry
             };
 
             // Validate dependencies
-            if (is_defined(file.dependencies)) {
-                dependency -> file.dependencies[i];
-                for (i = 0, i < #file.dependencies, i++) {
-                    // Validate dependencies.name
-                    validationRequest.value -> dependency;
-                    validationRequest.child = "name";
-                    validationRequest.type = TYPE_STRING;
-                    requireChildOfType@ValidationUtil(validationRequest)(validNameType);
+            dependency -> file.dependencies[i];
+            for (i = 0, i < #file.dependencies, i++) {
+                // Validate dependencies.name
+                validationRequest.value -> dependency;
+                validationRequest.child = "name";
+                validationRequest.type = TYPE_STRING;
+                requireChildOfType@ValidationUtil(validationRequest)
+                    (validNameType);
 
-                    if (!validNameType) {
+                if (!validNameType) {
+                    nextItem << {
+                        .type = VALIDATION_ERROR,
+                        .message = "'dependencies[" + i +
+                            "].name' must be of type string"
+                    }
+                } else {
+                    packageDependency.name = dependency.name
+                };
+
+                // Validate dependencies.version
+                validationRequest.value -> dependency;
+                validationRequest.child = "version";
+                validationRequest.type = TYPE_STRING;
+                requireChildOfType@ValidationUtil(validationRequest)
+                    (validVersionType);
+
+                if (!validVersionType) {
+                    nextItem << {
+                        .type = VALIDATION_ERROR,
+                        .message = "'dependencies[" + i +
+                            "].version' must be of type string"
+                    }
+                } else {
+                    validatePartial@SemVer(dependency.version)(validPartial);
+                    if (!validPartial) {
                         nextItem << {
                             .type = VALIDATION_ERROR,
-                            .message = "'dependencies[" + i + "].name' must be of type string"
+                            .message = "'dependencies[" + i +
+                                "].version' must be a valid version expression"
                         }
                     } else {
-                        packageDependency.name = dependency.name
-                    };
+                        packageDependency.version = dependency.version
+                    }
+                };
 
-                    // Validate dependencies.version
-                    validationRequest.value -> dependency;
-                    validationRequest.child = "version";
-                    validationRequest.type = TYPE_STRING;
-                    requireChildOfType@ValidationUtil(validationRequest)(validVersionType);
+                // Validate dependencies.registry
+                validationRequest.value -> dependency;
+                validationRequest.child = "registry";
+                validationRequest.type = TYPE_STRING;
+                optionalChildOfType@ValidationUtil(validationRequest)
+                    (validRegistryType);
 
-                    if (!validVersionType) {
+                if (!is_defined(dependency.registry)) {
+                    packageDependency.registry = "public"
+                } else {
+                    if (!validRegistryType) {
                         nextItem << {
                             .type = VALIDATION_ERROR,
-                            .message = "'dependencies[" + i + "].version' must be of type string"
+                            .message = "'dependencies[" + i +
+                                "].registry' must be of type string"
                         }
                     } else {
-                        validatePartial@SemVer(dependency.version)(validPartial);
-                        if (!validPartial) {
+                        if (!is_defined(knownRegistries.
+                                    (dependency.registry))) {
                             nextItem << {
                                 .type = VALIDATION_ERROR,
-                                .message = "'dependencies[" + i + "].version' must be a valid version expression"
+                                .message = "'dependencies[" + i +
+                                    "].registry' contains an unknown " +
+                                    "registry '" + dependency.registry + "'"
                             }
                         } else {
-                            packageDependency.version = dependency.version
+                            packageDependency.registry = dependency.registry
                         }
-                    };
+                    }
+                };
 
-                    // Validate dependencies.registry
-                    validationRequest.value -> dependency;
-                    validationRequest.child = "registry";
-                    validationRequest.type = TYPE_STRING;
-                    optionalChildOfType@ValidationUtil(validationRequest)(validRegistryType);
-
-                    if (!is_defined(dependency.registry)) {
-                        packageDependency.registry = "public"
-                    } else {
-                        if (!validRegistryType) {
-                            nextItem << {
-                                .type = VALIDATION_ERROR,
-                                .message = "'dependencies[" + i + "].registry' must be of type string"
-                            }
-                        } else {
-                            if (!is_defined(knownRegistries.(dependency.registry))) {
-                                nextItem << {
-                                    .type = VALIDATION_ERROR,
-                                    .message = "'dependencies[" + i +"].registry' contains an unknown registry '" +
-                                        dependency.registry + "'"
-                                }
-                            } else {
-                                packageDependency.registry = dependency.registry
-                            }
-                        }
-                    };
-
-                    // Dependency types
-                    if (is_defined(dependency.type)) {
-                        if (dependency.type == "runtime") {
-                            packageDependency.type = DEPENDENCY_TYPE_RUNTIME
-                        } else if (dependency.type == "interface") {
-                            packageDependency.type = DEPENDENCY_TYPE_INTERFACE
-                        } else {
-                            nextItem << {
-                                .type = VALIDATION_ERROR,
-                                .message = "'dependencies[" + i +"].type' is " +
-                                    "unknown'"
-                            }
-                        }
-                    } else {
+                // Dependency types
+                if (is_defined(dependency.type)) {
+                    if (dependency.type == "runtime") {
+                        packageDependency.type = DEPENDENCY_TYPE_RUNTIME
+                    } else if (dependency.type == "interface") {
                         packageDependency.type = DEPENDENCY_TYPE_INTERFACE
-                    };
+                    } else {
+                        nextItem << {
+                            .type = VALIDATION_ERROR,
+                            .message = "'dependencies[" + i +"].type' is " +
+                                "unknown'"
+                        }
+                    }
+                } else {
+                    packageDependency.type = DEPENDENCY_TYPE_INTERFACE
+                };
 
-                    packageBuilder.dependencies[#packageBuilder.dependencies] << packageDependency
-                }
+                packageBuilder.dependencies[#packageBuilder.dependencies] <<
+                    packageDependency
             };
 
             // Append processed package if we have no errors
@@ -375,3 +399,4 @@ main
         }
     }]
 }
+

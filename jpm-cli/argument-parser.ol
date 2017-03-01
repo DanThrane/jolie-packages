@@ -62,6 +62,10 @@ main {
                                     optionKey + "'"
                         })
                     }
+                };
+
+                if (currentOption.count == 0) {
+                    res.options.(optionKey) = true
                 }
             }
         };

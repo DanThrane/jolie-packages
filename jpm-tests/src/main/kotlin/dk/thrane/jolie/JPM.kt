@@ -53,7 +53,7 @@ class JPM(
                 }
             }).start()
 
-            val timeout = System.currentTimeMillis() + 10000
+            val timeout = System.currentTimeMillis() + 30000
             while (!ready && System.currentTimeMillis() < timeout) {
                 Thread.sleep(50)
             }

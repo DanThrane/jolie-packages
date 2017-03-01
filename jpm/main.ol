@@ -41,7 +41,8 @@ embedded {
     JoliePackage:
         "jpm-downloader" in Downloader,
         "packages" in Packages {
-            inputPort Packages { Location: "local" Protocol: sodep } // TODO Shoudln't we allow no protocol? 
+            inputPort Packages { Location: "local" Protocol: sodep }
+            // TODO Shoudln't we allow no protocol?
         }
 }
 
@@ -90,7 +91,7 @@ define PackageRequiredInFolder {
         .filename = packageFileName,
         .format = "text"
     })(packageJsonAsText);
-    
+
     validate@Packages({ .data = packageJsonAsText })(report);
     genericPackage << report.package;
     if (report.hasErrors) {
@@ -124,7 +125,7 @@ define PackageRequired {
  */
 define PackageRequiredInDependency {
     PathRequired;
-    folder = global.path + FILE_SEP + FOLDER_PACKAGES + FILE_SEP + 
+    folder = global.path + FILE_SEP + FOLDER_PACKAGES + FILE_SEP +
         dependencyName;
     PackageRequiredInFolder;
     dependencyPackage << genericPackage;
@@ -155,14 +156,14 @@ define RegistrySetLocation {
             found = true
         }
     };
-    
+
     if (!found) {
         throw(ServiceFault, {
             .type = FAULT_BAD_REQUEST,
             .message = "Cannot find registry '" + registryName + "'"
         })
     };
-    
+
     i = _i;
     undef(_i)
 }
@@ -172,7 +173,7 @@ define RegistrySetLocation {
  */
 define DependencyTree {
     PackageRequired;
-    
+
     debug = 0;
     dependencyStack << package.dependencies;
     currDependency -> dependencyStack[0];
@@ -180,14 +181,14 @@ define DependencyTree {
         registryName = currDependency.registry;
         name = currDependency.name;
         RegistrySetLocation;
-        
+
         // Lookup package information from the registry
         getPackageInfo@Registry(name)(info);
         if (#info.results == 0) {
             throw(ServiceFault, {
                 .type = FAULT_BAD_REQUEST,
-                .message = "Unable to resolve package '" + name + "'. " + 
-                    "No such package."            
+                .message = "Unable to resolve package '" + name + "'. " +
+                    "No such package."
             })
         };
 
@@ -195,15 +196,15 @@ define DependencyTree {
         if (is_defined(resolved)) {
             // Check if our expression matches the already selected version
             convertToString@SemVer(resolved.version)(versionString);
-            satisfies@SemVer({ 
-                .version = versionString, 
-                .range = currDependency.version 
+            satisfies@SemVer({
+                .version = versionString,
+                .range = currDependency.version
             })(versionSatisfied);
-            
+
             if (!versionSatisfied) {
                 throw(ServiceFault, {
                     .type = FAULT_BAD_REQUEST,
-                    .message = "Unable to resolve package '" + name + 
+                    .message = "Unable to resolve package '" + name +
                         "'. Conflicting versions required."
                 })
             }
@@ -226,8 +227,8 @@ define DependencyTree {
             if (#sortedVersions.versions == 0) {
                 throw(ServiceFault, {
                     .type = FAULT_BAD_REQUEST,
-                    .message = "Unable to resolve package '" + name + 
-                        "'. No version matches expression '" + 
+                    .message = "Unable to resolve package '" + name +
+                        "'. No version matches expression '" +
                         currDependency.version + "'"
                 })
             };
@@ -292,7 +293,7 @@ main {
             PackageRequired;
             hasPackage = true
         };
-        
+
         registries << {
             .name = "public",
             .location = REGISTRY_PUBLIC
@@ -311,7 +312,7 @@ main {
             install(IOException =>
                 throw(ServiceFault, {
                     .type = FAULT_BAD_REQUEST,
-                    .message = "Unable to connect to registry '" + 
+                    .message = "Unable to connect to registry '" +
                         currRegistry.name + "'"
                 })
             );
@@ -349,7 +350,7 @@ main {
         if (!success) {
             throw(ServiceFault, {
                 .type = FAULT_INTERNAL,
-                .message = "Unable to create directory. Does JPM have " + 
+                .message = "Unable to create directory. Does JPM have " +
                     "permissions to create directory in '" + global.path + "'?"
             })
         };
@@ -372,7 +373,7 @@ main {
 
         writeFile@File({
             .content = jsonManifest,
-            .filename = global.path + FILE_SEP + request.name + FILE_SEP + 
+            .filename = global.path + FILE_SEP + request.name + FILE_SEP +
                 "package.json"
         })()
     }]
@@ -389,7 +390,7 @@ main {
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);
 
         isDeploying = is_defined(request.deployment);
-        
+
         if (isDeploying) {
             nextArgument = "--pkg-root";
             nextArgument = package.name;
@@ -410,14 +411,14 @@ main {
             PackageRequiredInDependency;
             if (is_defined(dependencyPackage.main)) {
                 nextArgument = "--main." + dependencyName;
-                nextArgument = global.path + FILE_SEP + FOLDER_PACKAGES + 
-                    FILE_SEP + dependencyName + 
+                nextArgument = global.path + FILE_SEP + FOLDER_PACKAGES +
+                    FILE_SEP + dependencyName +
                     FILE_SEP + dependencyPackage.main
             };
             undef(dependencyPackage)
         };
-        
-        if (isDeploying) {  
+
+        if (isDeploying) {
             nextArgument = "--deploy";
             nextArgument = request.deployment.profile;
             nextArgument = request.deployment.file
@@ -430,7 +431,6 @@ main {
                 nextArgument = request.args[i]
             }
         };
-        value -> command; DebugPrintValue;
 
         executionRequest.directory = global.path;
         executionRequest.suppress = false;
@@ -438,7 +438,11 @@ main {
         joinRequest.piece -> command;
         joinRequest.delimiter = "\n";
         join@StringUtils(joinRequest)(prettyCommand);
-        println@Console(prettyCommand)();
+
+        if (request.isVerbose) {
+            value -> command; DebugPrintValue;
+            println@Console(prettyCommand)()
+        };
         execute@Execution(executionRequest)()
     }]
 
@@ -450,8 +454,8 @@ main {
         dependencyInformation -> resolvedDependencies.(dependencyName);
         foreach (dependencyName : resolvedDependencies) {
             scope (installation) {
-                install(DownloaderFault => 
-                    println@Console("Failed to download dependency '" + 
+                install(DownloaderFault =>
+                    println@Console("Failed to download dependency '" +
                             dependencyName + "'")();
                     value -> installation.DownloaderFault; DebugPrintValue
                 );
@@ -482,9 +486,9 @@ main {
                 registryName = req.registry
             };
             RegistrySetLocation;
-            authenticate@Registry({ 
-                .username = req.username, 
-                .password = req.password 
+            authenticate@Registry({
+                .username = req.username,
+                .password = req.password
             })(token);
 
             tokens.(Registry.location) = token;
@@ -515,10 +519,10 @@ main {
             registryName = "public";
             if (is_defined(req.registry)) registryName = req.registry;
             RegistrySetLocation;
-            
+
             TokensRequire;
             whoami@Registry({
-                .token = tokens.(Registry.location) 
+                .token = tokens.(Registry.location)
             })(res)
         }
     }]
@@ -530,10 +534,10 @@ main {
             registryName = "public";
             if (is_defined(req.registry)) registryName = req.registry;
             RegistrySetLocation;
-            
+
             TokensRequire;
-            logout@Registry({ 
-                .token = tokens.(Registry.location) 
+            logout@Registry({
+                .token = tokens.(Registry.location)
             })();
 
             undef(tokens.(Registry.location));
@@ -567,13 +571,13 @@ main {
             pkgRequest.name = package.name;
             pack@Pkg(pkgRequest)();
 
-            println@Console("Reading back file from: " + temporaryLocation + 
+            println@Console("Reading back file from: " + temporaryLocation +
                 pkgRequest.name + ".pkg")();
             readFile@File({
                 .filename = temporaryLocation + package.name + ".pkg",
                 .format = "binary"
             })(payload);
-            
+
             println@Console("Publishing package")();
             publish@Registry({
                 .package = package.name,

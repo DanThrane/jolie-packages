@@ -34,7 +34,7 @@ constants {
 interface ISemanticVersion {
     RequestResponse:
         parseVersion(string)(SemVer),
-        incrementVersion(IncrementVersionRequest)(string) 
+        incrementVersion(IncrementVersionRequest)(string)
             throws InvalidSemVerFieldType, InvalidVersion,
         satisfies(SatisfiesVersionRequest)(bool),
         validatePartial(string)(bool),

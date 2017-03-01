@@ -17,3 +17,4 @@ embedded {
     Java:
         "dk.thrane.jolie.bcrypt.BCryptService" in BCrypt
 }
+

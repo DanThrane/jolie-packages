@@ -49,6 +49,7 @@ type JPMStartRequest: void {
         .profile: string
         .file: string
     }
+    .isVerbose: bool 
 }
 
 interface IJPM {

@@ -67,20 +67,6 @@ main {
     parseRequest.begin = 2;
     parse@ArgumentParser(parseRequest)(command);
     command = args[1];
-   /*
-    for (i = 2, i < #args, i++) {
-        startsWith@StringUtils(args[i] { .prefix = "--" })(isOption);
-
-        if (isOption) {
-            length@StringUtils(args[i])(optionLength);
-            substring@StringUtils(args[i] { .begin = 2, .end = optionLength })
-                (optionName);
-            command.options.(optionName) = i - 2
-        };
-
-        command.args[i - 2] = args[i]
-    };
-    */
 
     HandleCommand
 }

@@ -7,9 +7,10 @@ Usage: jpm start [OPTIONS] [PROGRAM-ARGUMENTS]
 Options:
 
 --deploy <profile> <configurationFile>: Uses a deployment profile
+--verbose: Verbose output
 ";
     trim@StringUtils(global.helpText.("start"))(global.helpText.("start"));
-    global.helpText.("start").short = "Start dependencies"
+    global.helpText.("start").short = "Start this package."
 }
 
 define HandleStartCommand {
@@ -18,10 +19,13 @@ define HandleStartCommand {
 
         with (consumeRequest) {
             .parsed << command;
-            .options.("deploy").count = 2
+            .options.("deploy").count = 2;
+            .options.("verbose").count = 0
         };
         consumeRequest.parsed = null;
         consumeOptions@ArgumentParser(consumeRequest)(command);
+
+        startReq.isVerbose = is_defined(command.options.verbose);
 
         isDeploying = is_defined(command.options.deploy);
         if (isDeploying) {

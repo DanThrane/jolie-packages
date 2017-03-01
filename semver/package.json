@@ -2,11 +2,6 @@
     "name": "semver",
     "authors": ["Dan Sebastian Thrane <dthrane@gmail.com>"],
     "license": "MIT",
-    "version": "0.1.0",
-    "private": false,
-    "scripts": {
-        "build": {
-            "cmd": "./build"
-        }
-    }
+    "version": "1.0.0",
+    "private": false
 }
