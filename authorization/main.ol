@@ -2,6 +2,7 @@ include "authorization.iol"
 include "time.iol"
 include "bcrypt" "bcrypt.iol"
 include "jpm-utils" "utils.iol"
+include "db_scripts.iol"
 
 execution { sequential }
 
@@ -62,33 +63,40 @@ define GroupFind {
 }
 
 /**
- * @input username: string
- * @input password: string
- * @output token: AccessToken
+ * @input .username: string
+ * @input .password: string
+ * @output .token: AccessToken
  * @throws AuthorizationFault if username and password doesn't match
  */
 define Auth {
-    invalidError << {
+    Auth.invalidError << {
         .type = FAULT_BAD_REQUEST,
         .message = "Invalid username or password"
     };
 
-    if (!is_defined(global.users.(username))) {
-        throw(AuthorizationFault, invalidError)
+    UserFindByUsername.in.username = Auth.in.username;
+    UserFindByUsername;
+    Auth.user -> UserFindByUsername.out.result;
+
+    if (#Auth.user != 1) {
+        throw(AuthorizationFault, Auth.invalidError)
     };
 
     checkPassword@BCrypt({
-        .password = password,
-        .hashed = global.users.(username)
-    })(matches);
+        .password = Auth.in.password,
+        .hashed = Auth.user.password
+    })(Auth.matches);
 
-    if (!matches) {
-        throw(AuthorizationFault, invalidError)
+    if (!Auth.matches) {
+        throw(AuthorizationFault, Auth.invalidError)
     };
 
-    TokenCreate.in.token = new;
-    TokenCreate.in.username = username;
-    TokenCreate
+    AuthTokenCreate.in.token = new;
+    AuthTokenCreate.in.userId = Auth.user.id;
+    getCurrentTimeMillis@Time()(AuthTokenCreate.in.timestamp);
+    AuthTokenCreate;
+
+    Auth.out.token = AuthTokenCreate.in.token
 }
 
 /**
@@ -105,110 +113,10 @@ define GroupRequireNonAuth {
     undef(isAuthGroup)
 }
 
-/**
- * @input .token: string
- * 
- * @output .isValid: bool
- * @output .result?: { .token: string, .timestamp: long, 
- *                     .username: string } 
- */
-define TokenFind {
-    TokenFind.q = "
-        SELECT token, timestamp, user_id AS username
-        FROM auth_token
-        WHERE token = :token;
-    ";
-    TokenFind.q.token = TokenFind.in.token;
-    query@Database(TokenFind.q)(TokenFind.result);
-    
-    TokenFind.out.isValid = #TokenFind.result.row > 0;
-    if (TokenFind.out.isValid) {
-        TokenFind.result << TokenFind.result.row[0]
-    }
-}
-
-/**
- * @input .token: string
- */
-define TokenDelete {
-    TokenDelete.q = "
-        DELETE FROM auth_token WHERE token = :token;
-    ";
-    TokenDelete.q.token = Tokendelete.in.token;
-    update@Database(TokenDelete.q)()
-}
-
-/**
- * @input .token: string
- * @input .username: string
- */
-define TokenCreate {
-    TokenCreate.q = "
-        INSERT INTO auth_token(token, timestamp, username)
-        VALUES (:token, :timestamp, :username)
-    ";
-    TokenCreate.q.token = TokenCreate.in.token;
-    TokenCreate.q.username = TokenCreate.in.username;
-    getCurrentTimeMillis@Time()(TokenCreate.q.timestamp);
-    update@Database(TokenCreate.q)()
-}
-
-/**
-  * @input .username: string
-  * @input .hashedPassword: string
-  */
-define UserCreate {
-    UserCreate.q = "
-        INSERT INTO 'user' (username, password)
-        VALUES (:username, :password)
-    ";
-    UserCreate.q.username = UserCreate.in.username;
-    UserCreate.q.password = UserCreate.in.password;
-    update@Database(UserCreate.q)()
-}
-
-/**
-  * @input .username: string
-  * @output .isValid: bool
-  * @output .result?: { .username: string, .password: string }
-  */
-define UserFind {
-    UserFind.q = "
-        SELECT username, password
-        FROM 'user'
-        WHERE username = :username
-    ";
-    UserFind.q.username = UserFind.in.username;
-    query@Database(UserFind.q)(UserFind.result);
-
-    UserFind.out.isValid = #UserFind.result.row > 0;
-    if (UserFind.out.isValid) {
-        UserFind.out.result << UserFind.result.row[0]
-    }
-}
-
-/**
- * @input .username: string
- * @output .groups[0, *]: string
- */
-define GroupFindByUsername {
-    GroupFindByUsername.q = "
-        SELECT group_id AS 'group'
-        FROM group_member
-        WHERE user_id = :username
-    ";
-    GroupFindByUsername.q.username = GroupFindByUsername.in.username;
-    query@Database(GroupFindByUsername.q)(GroupFindByUsername.result);
-    
-    GroupFindByUsername._i = i;
-    for (i = 0; i < #GroupFindByUsername.result.row, i++) {
-
-    };
-    i = GroupFindByUsername._i
-}
-
 init {
     install(AuthorizationFault => nullProcess);
+
+    DatabaseInit;
 
     // Default rights. This should be doable from ext configuration
     global.groups.("auth.guest").rights.("packages.*").("read") = true
@@ -221,46 +129,51 @@ main {
         value -> global.groups; DebugPrintValue
     }]
 
-    [register(request)(token) {
-        if (is_defined(global.users.(request.username))) {
-            throw(AuthorizationFault, {
-                .type = FAULT_BAD_REQUEST,
-                .message = "Username is already taken!"
-            })
+    [register(request)(Auth.out.token) {
+        scope (userCreateScope) {
+            install(SQLException =>
+                throw(AuthorizationFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Username is already taken!"
+                })
+            );
+            UserCreate.in.username = request.username;
+            hashPassword@BCrypt(request.password)(UserCreate.in.password);
+            UserCreate
         };
 
-        hashPassword@BCrypt(request.password)(global.users.(request.username));
-        username = request.username;
-        password = request.password;
+        // TODO Create a new group with default rights!
+        Auth.in.username = request.username;
+        Auth.in.password = request.password;
         Auth
     }]
 
-    [authenticate(request)(token) {
+    [authenticate(request)(Auth.out.token) {
         username = request.username;
         password = request.password;
         Auth
     }]
 
     [invalidate(token)(response) {
-        TokenDelete.in.token = token;
-        TokenDelete
+        AuthTokenDeleteByToken.in.token = token;
+        AuthTokenDeleteByToken
     }]
 
     [validate(request)(response) {
         session -> global.sessions.(request.token);
-        TokenFind.in.token = request.token;
-        TokenFind;
+        AuthTokenFindByToken.in.token = request.token;
+        AuthTokenFindByToken;
 
-        if (TokenFind.out.isValid) {
+        if (#AuthTokenFindByToken.out.result == 1) {
             if (is_defined(request.maxAge)) {
                 getCurrentTimeMillis@Time()(now);
-                age = now - TokenFind.out.result.timestamp;
+                age = now - AuthTokenFindByToken.out.result.timestamp;
                 response = age <= request.maxAge
             } else {
                 response = true
             };
             if (response) {
-                response.username = TokenFind.out.result.username
+                response.username = AuthTokenFindByToken.out.result.username
             }
         }
     }]

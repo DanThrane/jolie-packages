@@ -28,7 +28,7 @@ outputPort Packages {
     Interfaces: IPackages
 }
 
-outputPort Authorization {
+ext outputPort Authorization {
     Interfaces: IAuthorization
 }
 
@@ -40,9 +40,6 @@ embedded {
     JoliePackage:
         "packages" in Packages {
             inputPort Packages { Location: "local" Protocol: sodep }
-        },
-        "authorization" in Authorization {
-            inputPort Authorization { Location: "local" Protocol: sodep }
         }
 }
 

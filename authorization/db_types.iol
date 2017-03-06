@@ -5,7 +5,7 @@ type User: void {
 }
 
 type Group: void {
-    .tableName: string
+    .groupName: string
 }
 
 type GroupMember: void {

@@ -1,5 +1,6 @@
 profile "reg-development" configures "registry" {
-    outputPort RegDB embeds "regdb-development"
+    outputPort RegDB embeds "regdb-development",
+    outputPort Authorization embeds "auth-dev"
 }
 
 profile "regdb-development" configures "registry-database" {
@@ -9,4 +10,13 @@ profile "regdb-development" configures "registry-database" {
     DATABASE_HOST = "",
     DATABASE_BASE = "/home/dan/registry.db",
     DATABASE_DRIVER = "sqlite",
+}
+
+profile "auth-dev" configures "authorization" {
+    inputPort Authorization { Location: "local" Protocol: sodep },
+    AUTH_DATABASE_USERNAME = "",
+    AUTH_DATABASE_PASSWORD = "",
+    AUTH_DATABASE_HOST = "",
+    AUTH_DATABASE_BASE = "/home/dan/auth.db",
+    AUTH_DATABASE_DRIVER = "sqlite"
 }

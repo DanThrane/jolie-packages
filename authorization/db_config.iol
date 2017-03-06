@@ -1,20 +1,20 @@
 include "database.iol"
 
 constants {
-    DATABASE_USERNAME: string,
-    DATABASE_PASSWORD: string,
-    DATABASE_HOST: string,
-    DATABASE_BASE: string,
-    DATABASE_DRIVER: string
+    AUTH_DATABASE_USERNAME: string,
+    AUTH_DATABASE_PASSWORD: string,
+    AUTH_DATABASE_HOST: string,
+    AUTH_DATABASE_BASE: string,
+    AUTH_DATABASE_DRIVER: string
 }
 
 define DatabaseConnect {
     with (connectionInfo) {
-        .username = DATABASE_USERNAME;
-        .password = DATABASE_PASSWORD;
-        .host = DATABASE_HOST;
-        .database = DATABASE_BASE;
-        .driver = DATABASE_DRIVER
+        .username = AUTH_DATABASE_USERNAME;
+        .password = AUTH_DATABASE_PASSWORD;
+        .host = AUTH_DATABASE_HOST;
+        .database = AUTH_DATABASE_BASE;
+        .driver = AUTH_DATABASE_DRIVER
     };
     connect@Database(connectionInfo)();
     undef(connectionInfo)
