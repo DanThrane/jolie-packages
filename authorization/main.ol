@@ -81,20 +81,14 @@ define Auth {
         .password = password,
         .hashed = global.users.(username)
     })(matches);
-    
+
     if (!matches) {
         throw(AuthorizationFault, invalidError)
     };
 
-    token = new;
-    getCurrentTimeMillis@Time()(now);
-    global.sessions.(token) << {
-        .username = username,
-        .timeCreated = now
-    };
-
-    undef(now);
-    undef(invalidError)
+    TokenCreate.in.token = new;
+    TokenCreate.in.username = username;
+    TokenCreate
 }
 
 /**
@@ -109,6 +103,108 @@ define GroupRequireNonAuth {
         })
     };
     undef(isAuthGroup)
+}
+
+/**
+ * @input .token: string
+ * 
+ * @output .isValid: bool
+ * @output .result?: { .token: string, .timestamp: long, 
+ *                     .username: string } 
+ */
+define TokenFind {
+    TokenFind.q = "
+        SELECT token, timestamp, user_id AS username
+        FROM auth_token
+        WHERE token = :token;
+    ";
+    TokenFind.q.token = TokenFind.in.token;
+    query@Database(TokenFind.q)(TokenFind.result);
+    
+    TokenFind.out.isValid = #TokenFind.result.row > 0;
+    if (TokenFind.out.isValid) {
+        TokenFind.result << TokenFind.result.row[0]
+    }
+}
+
+/**
+ * @input .token: string
+ */
+define TokenDelete {
+    TokenDelete.q = "
+        DELETE FROM auth_token WHERE token = :token;
+    ";
+    TokenDelete.q.token = Tokendelete.in.token;
+    update@Database(TokenDelete.q)()
+}
+
+/**
+ * @input .token: string
+ * @input .username: string
+ */
+define TokenCreate {
+    TokenCreate.q = "
+        INSERT INTO auth_token(token, timestamp, username)
+        VALUES (:token, :timestamp, :username)
+    ";
+    TokenCreate.q.token = TokenCreate.in.token;
+    TokenCreate.q.username = TokenCreate.in.username;
+    getCurrentTimeMillis@Time()(TokenCreate.q.timestamp);
+    update@Database(TokenCreate.q)()
+}
+
+/**
+  * @input .username: string
+  * @input .hashedPassword: string
+  */
+define UserCreate {
+    UserCreate.q = "
+        INSERT INTO 'user' (username, password)
+        VALUES (:username, :password)
+    ";
+    UserCreate.q.username = UserCreate.in.username;
+    UserCreate.q.password = UserCreate.in.password;
+    update@Database(UserCreate.q)()
+}
+
+/**
+  * @input .username: string
+  * @output .isValid: bool
+  * @output .result?: { .username: string, .password: string }
+  */
+define UserFind {
+    UserFind.q = "
+        SELECT username, password
+        FROM 'user'
+        WHERE username = :username
+    ";
+    UserFind.q.username = UserFind.in.username;
+    query@Database(UserFind.q)(UserFind.result);
+
+    UserFind.out.isValid = #UserFind.result.row > 0;
+    if (UserFind.out.isValid) {
+        UserFind.out.result << UserFind.result.row[0]
+    }
+}
+
+/**
+ * @input .username: string
+ * @output .groups[0, *]: string
+ */
+define GroupFindByUsername {
+    GroupFindByUsername.q = "
+        SELECT group_id AS 'group'
+        FROM group_member
+        WHERE user_id = :username
+    ";
+    GroupFindByUsername.q.username = GroupFindByUsername.in.username;
+    query@Database(GroupFindByUsername.q)(GroupFindByUsername.result);
+    
+    GroupFindByUsername._i = i;
+    for (i = 0; i < #GroupFindByUsername.result.row, i++) {
+
+    };
+    i = GroupFindByUsername._i
 }
 
 init {
@@ -146,27 +242,26 @@ main {
     }]
 
     [invalidate(token)(response) {
-        undef(global.sessions.(token))
+        TokenDelete.in.token = token;
+        TokenDelete
     }]
 
     [validate(request)(response) {
         session -> global.sessions.(request.token);
-        if (is_defined(session)) {
-            response.username = session.username;
+        TokenFind.in.token = request.token;
+        TokenFind;
+
+        if (TokenFind.out.isValid) {
             if (is_defined(request.maxAge)) {
                 getCurrentTimeMillis@Time()(now);
-                age = now - session.timeCreated;
-                if (age > request.maxAge) {
-                    response = false;
-                    undef(response.username)
-                } else {
-                    response = true
-                }
+                age = now - TokenFind.out.result.timestamp;
+                response = age <= request.maxAge
             } else {
                 response = true
+            };
+            if (response) {
+                response.username = TokenFind.out.result.username
             }
-        } else {
-            response = false
         }
     }]
 

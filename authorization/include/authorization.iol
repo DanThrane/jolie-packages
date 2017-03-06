@@ -78,7 +78,7 @@ interface IAuthorization {
     RequestResponse:
         register(AuthRegistrationRequest)(AccessToken)
             throws AuthorizationFault(ErrorMessage),
-        authenticate(AuthAuthorizationRequest)(AccessToken) 
+        authenticate(AuthAuthorizationRequest)(AccessToken)
             throws AuthorizationFault(ErrorMessage),
         invalidate(AccessToken)(void),
         validate(AuthValidationRequest)(AuthValidationResponse),
