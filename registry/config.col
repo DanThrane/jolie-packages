@@ -18,5 +18,20 @@ profile "auth-dev" configures "authorization" {
     AUTH_DATABASE_PASSWORD = "",
     AUTH_DATABASE_HOST = "",
     AUTH_DATABASE_BASE = "/home/dan/auth.db",
-    AUTH_DATABASE_DRIVER = "sqlite"
+    AUTH_DATABASE_DRIVER = "sqlite",
+
+    AUTH_DEFAULT_RIGHTS = {
+        .("packages.*").read = true,
+        // TODO This should be supported!
+        .bar.test = {
+            .a = 1,
+            .b = 2,
+            .c = 3
+        }
+    },
+
+    AUTH_GUEST_RIGHTS = {
+        .("packages.*").read = true
+    }
 }
+

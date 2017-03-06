@@ -389,6 +389,16 @@ main {
         nextArgument = "joliedev";
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);
 
+        if (is_defined(request.debug)) {
+            command[0] = "joliedebug";
+            if (request.debug.suspend) {
+                nextArgument = "y"
+            } else {
+                nextArgument = "n"
+            };
+            nextArgument = "" + request.debug.port
+        };
+
         isDeploying = is_defined(request.deployment);
 
         if (isDeploying) {

@@ -49,6 +49,10 @@ type JPMStartRequest: void {
         .profile: string
         .file: string
     }
+    .debug?: void {
+        .suspend: bool
+        .port: int
+    }
     .isVerbose: bool 
 }
 

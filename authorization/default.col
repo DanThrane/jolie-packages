@@ -1,0 +1,6 @@
+profile "default" configures "authorization" {
+    // TODO We don't allow empty constants (i.e. void)!
+    AUTH_DEFAULT_RIGHTS = false,
+    AUTH_GUEST_RIGHTS = false
+}
+

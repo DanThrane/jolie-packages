@@ -8,6 +8,7 @@ Options:
 
 --deploy <profile> <configurationFile>: Uses a deployment profile
 --verbose: Verbose output
+--debug <suspend> <port>: Uses joliedebug as the interpreter
 ";
     trim@StringUtils(global.helpText.("start"))(global.helpText.("start"));
     global.helpText.("start").short = "Start this package."
@@ -20,12 +21,19 @@ define HandleStartCommand {
         with (consumeRequest) {
             .parsed << command;
             .options.("deploy").count = 2;
-            .options.("verbose").count = 0
+            .options.("verbose").count = 0;
+            .options.("debug").count = 2
         };
         consumeRequest.parsed = null;
         consumeOptions@ArgumentParser(consumeRequest)(command);
 
         startReq.isVerbose = is_defined(command.options.verbose);
+
+        isDebug = is_defined(command.options.debug);
+        if (isDebug) {
+            startReq.debug.suspend = command.options.debug[0] == "y";
+            startReq.debug.port = int(command.options.debug[1])
+        };
 
         isDeploying = is_defined(command.options.deploy);
         if (isDeploying) {

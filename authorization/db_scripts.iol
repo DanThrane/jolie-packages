@@ -68,13 +68,15 @@ define DatabaseInit {
 
 define UserCreate {
     DatabaseConnect;
-    UserCreate.q = "
-        INSERT INTO user (username, password)
+    UserCreate.q.statement[0] = "
+        INSERT INTO `user` (`username`, `password`)
         VALUES (:username, :password)
     ";
-    UserCreate.q.username = UserCreate.in.username;
-    UserCreate.q.password = UserCreate.in.password;
-    update@Database(UserCreate.q)(UserCreate.result)
+    UserCreate.q.statement[0].username = UserCreate.in.username;
+    UserCreate.q.statement[0].password = UserCreate.in.password;
+    UserCreate.q.statement[1] = "SELECT last_insert_rowid() AS id";
+    executeTransaction@Database(UserCreate.q)(UserCreate.t);
+    UserCreate.out.id = UserCreate.t.result[1].row[0].id
 }
 define UserDeleteById {
     DatabaseConnect;
@@ -145,12 +147,14 @@ define UserDeleteByPassword {
 
 define GroupCreate {
     DatabaseConnect;
-    GroupCreate.q = "
-        INSERT INTO group (groupName)
+    GroupCreate.q.statement[0] = "
+        INSERT INTO `group` (`groupName`)
         VALUES (:groupName)
     ";
-    GroupCreate.q.groupName = GroupCreate.in.groupName;
-    update@Database(GroupCreate.q)(GroupCreate.result)
+    GroupCreate.q.statement[0].groupName = GroupCreate.in.groupName;
+    GroupCreate.q.statement[1] = "SELECT last_insert_rowid() AS id";
+    executeTransaction@Database(GroupCreate.q)(GroupCreate.t);
+    GroupCreate.out.id = GroupCreate.t.result[1].row[0].id
 }
 define GroupDeleteById {
     DatabaseConnect;
@@ -198,13 +202,15 @@ define GroupDeleteByGroupName {
 
 define GroupMemberCreate {
     DatabaseConnect;
-    GroupMemberCreate.q = "
-        INSERT INTO group_member (userId, groupId)
+    GroupMemberCreate.q.statement[0] = "
+        INSERT INTO `group_member` (`userId`, `groupId`)
         VALUES (:userId, :groupId)
     ";
-    GroupMemberCreate.q.userId = GroupMemberCreate.in.userId;
-    GroupMemberCreate.q.groupId = GroupMemberCreate.in.groupId;
-    update@Database(GroupMemberCreate.q)(GroupMemberCreate.result)
+    GroupMemberCreate.q.statement[0].userId = GroupMemberCreate.in.userId;
+    GroupMemberCreate.q.statement[0].groupId = GroupMemberCreate.in.groupId;
+    GroupMemberCreate.q.statement[1] = "SELECT last_insert_rowid() AS id";
+    executeTransaction@Database(GroupMemberCreate.q)(GroupMemberCreate.t);
+    GroupMemberCreate.out.id = GroupMemberCreate.t.result[1].row[0].id
 }
 define GroupMemberDeleteById {
     DatabaseConnect;
@@ -275,13 +281,15 @@ define GroupMemberDeleteByGroupId {
 
 define GroupRightsCreate {
     DatabaseConnect;
-    GroupRightsCreate.q = "
-        INSERT INTO group_rights (groupId, resource)
+    GroupRightsCreate.q.statement[0] = "
+        INSERT INTO `group_rights` (`groupId`, `resource`)
         VALUES (:groupId, :resource)
     ";
-    GroupRightsCreate.q.groupId = GroupRightsCreate.in.groupId;
-    GroupRightsCreate.q.resource = GroupRightsCreate.in.resource;
-    update@Database(GroupRightsCreate.q)(GroupRightsCreate.result)
+    GroupRightsCreate.q.statement[0].groupId = GroupRightsCreate.in.groupId;
+    GroupRightsCreate.q.statement[0].resource = GroupRightsCreate.in.resource;
+    GroupRightsCreate.q.statement[1] = "SELECT last_insert_rowid() AS id";
+    executeTransaction@Database(GroupRightsCreate.q)(GroupRightsCreate.t);
+    GroupRightsCreate.out.id = GroupRightsCreate.t.result[1].row[0].id
 }
 define GroupRightsDeleteById {
     DatabaseConnect;
@@ -352,13 +360,15 @@ define GroupRightsDeleteByResource {
 
 define ResourceRightCreate {
     DatabaseConnect;
-    ResourceRightCreate.q = "
-        INSERT INTO resource_right (group_rightsId, value)
+    ResourceRightCreate.q.statement[0] = "
+        INSERT INTO `resource_right` (`group_rightsId`, `value`)
         VALUES (:group_rightsId, :value)
     ";
-    ResourceRightCreate.q.group_rightsId = ResourceRightCreate.in.group_rightsId;
-    ResourceRightCreate.q.value = ResourceRightCreate.in.value;
-    update@Database(ResourceRightCreate.q)(ResourceRightCreate.result)
+    ResourceRightCreate.q.statement[0].group_rightsId = ResourceRightCreate.in.group_rightsId;
+    ResourceRightCreate.q.statement[0].value = ResourceRightCreate.in.value;
+    ResourceRightCreate.q.statement[1] = "SELECT last_insert_rowid() AS id";
+    executeTransaction@Database(ResourceRightCreate.q)(ResourceRightCreate.t);
+    ResourceRightCreate.out.id = ResourceRightCreate.t.result[1].row[0].id
 }
 define ResourceRightDeleteById {
     DatabaseConnect;
@@ -429,14 +439,16 @@ define ResourceRightDeleteByValue {
 
 define AuthTokenCreate {
     DatabaseConnect;
-    AuthTokenCreate.q = "
-        INSERT INTO auth_token (token, timestamp, userId)
+    AuthTokenCreate.q.statement[0] = "
+        INSERT INTO `auth_token` (`token`, `timestamp`, `userId`)
         VALUES (:token, :timestamp, :userId)
     ";
-    AuthTokenCreate.q.token = AuthTokenCreate.in.token;
-    AuthTokenCreate.q.timestamp = AuthTokenCreate.in.timestamp;
-    AuthTokenCreate.q.userId = AuthTokenCreate.in.userId;
-    update@Database(AuthTokenCreate.q)(AuthTokenCreate.result)
+    AuthTokenCreate.q.statement[0].token = AuthTokenCreate.in.token;
+    AuthTokenCreate.q.statement[0].timestamp = AuthTokenCreate.in.timestamp;
+    AuthTokenCreate.q.statement[0].userId = AuthTokenCreate.in.userId;
+    AuthTokenCreate.q.statement[1] = "SELECT last_insert_rowid() AS id";
+    executeTransaction@Database(AuthTokenCreate.q)(AuthTokenCreate.t);
+    AuthTokenCreate.out.id = AuthTokenCreate.t.result[1].row[0].id
 }
 define AuthTokenDeleteById {
     DatabaseConnect;

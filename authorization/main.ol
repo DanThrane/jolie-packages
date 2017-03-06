@@ -3,6 +3,7 @@ include "time.iol"
 include "bcrypt" "bcrypt.iol"
 include "jpm-utils" "utils.iol"
 include "db_scripts.iol"
+include "config.iol"
 
 execution { sequential }
 
@@ -78,6 +79,9 @@ define Auth {
     UserFindByUsername;
     Auth.user -> UserFindByUsername.out.result;
 
+    valueToPrettyString@StringUtils(Auth.user)(pretty);
+    println@Console(pretty)();
+
     if (#Auth.user != 1) {
         throw(AuthorizationFault, Auth.invalidError)
     };
@@ -113,13 +117,129 @@ define GroupRequireNonAuth {
     undef(isAuthGroup)
 }
 
+/**
+ * @input .groupName: string
+ * @input .userIds[*]: long
+ * @output .groupId: long
+ */
+define GroupCreateWithDefaultRights {
+    ns -> GroupCreateWithDefaultRights;
+
+    // Create group for user
+    GroupCreate.in.groupName = ns.in.groupName;
+    GroupCreate;
+
+    // Add users to group
+    for (i = 0, i < #ns.in.userIds, i++) {
+        GroupMemberCreate.in.groupId = GroupCreate.out.id;
+        GroupMemberCreate.in.userId = ns.in.userIds[i];
+        GroupMemberCreate
+    };
+
+    // Grant default rights to group
+    foreach (resource : AUTH_DEFAULT_RIGHTS) {
+        GroupRightsCreate.in.groupId = GroupCreate.out.id;
+        GroupRightsCreate.in.resource = resource;
+        GroupRightsCreate;
+
+        rights << AUTH_DEFAULT_RIGHTS.(resource);
+        foreach (right : rights) {
+            idx = #t.statement;
+            t.statement[idx] = "INSERT INTO `resource_right`
+                (`group_rightsId`, `value`)
+                VALUES (:gr, :value)";
+            t.statement[idx].gr = GroupRightsCreate.out.id;
+            t.statement[idx].value = right
+        };
+        executeTransaction@Database(t)();
+
+        undef(rights);
+        undef(t)
+    };
+
+    ns.out.groupId = GroupCreate.out.id
+}
+
+/**
+ * @input .groupName: string
+ * @output .resource: Map<String, Set<String>>
+ */
+define GroupRightsByGroupName {
+    DatabaseConnect;
+    ns -> GroupRightsByGroupName;
+
+    ns.q = "
+        SELECT
+            gr.id AS gr_id,
+            gr.resource AS resource,
+            rr.id AS rr_id,
+            rr.value AS value
+        FROM
+            group_rights gr,
+            resource_right rr,
+            group g
+        WHERE
+            g.id = gr.groupId AND
+            gr.id = rr.group_rightsId AND
+            g.groupName = :groupName
+    ";
+
+    ns.q.groupName = ns.in.groupName;
+    query@Database(ns.q)(ns.result);
+
+    ns.currentRow -> ns.result.row[i];
+    for (i = 0, i < #ns.result.row, i++) {
+        ns.out.resource.(ns.currentRow.resource) = ns.currentRow.gr_id;
+        ns.out.resource.(ns.currentRow.resource).(ns.currentRow.value) =
+            ns.currentRow.rr_id
+    }
+}
+
+/**
+ * @input .token: string
+ * @output .resource: Map<String, Set<String>>. Root values contain DB IDs
+ */
+define UserRightsByToken {
+    DatabaseConnect;
+    ns -> UserRightsByUsername;
+
+    ns.q = "
+        SELECT
+            gr.id AS gr_id,
+            gr.resource AS resource,
+            rr.id AS rr_id,
+            rr.value AS value
+        FROM
+            group_rights gr,
+            resource_right rr,
+            group g,
+            group_member gm,
+            `user` u,
+            auth_token t
+        WHERE
+            g.id = gr.groupId AND
+            gr.id = rr.group_rightsId AND
+            gm.groupId = g.id AND
+            gm.userId = u.id AND
+            t.userId = u.id AND
+            t.token = :token
+    ";
+    ns.q.token = ns.in.token;
+
+    query@Database(ns.q)(ns.result);
+
+    ns.currentRow -> ns.result.row[i];
+    for (i = 0, i < #ns.result.row, i++) {
+        ns.out.resource.(ns.currentRow.resource) = ns.currentRow.gr_id;
+        ns.out.resource.(ns.currentRow.resource).(ns.currentRow.value) =
+            ns.currentRow.rr_id;
+    }
+}
+
 init {
     install(AuthorizationFault => nullProcess);
 
-    DatabaseInit;
-
-    // Default rights. This should be doable from ext configuration
-    global.groups.("auth.guest").rights.("packages.*").("read") = true
+    DatabaseInit
 }
 
 main {
@@ -130,6 +250,9 @@ main {
     }]
 
     [register(request)(Auth.out.token) {
+        DatabaseConnect;
+
+        // Create user
         scope (userCreateScope) {
             install(SQLException =>
                 throw(AuthorizationFault, {
@@ -142,15 +265,15 @@ main {
             UserCreate
         };
 
-        // TODO Create a new group with default rights!
+        // Authenticate with system
         Auth.in.username = request.username;
         Auth.in.password = request.password;
         Auth
     }]
 
     [authenticate(request)(Auth.out.token) {
-        username = request.username;
-        password = request.password;
+        Auth.in.username = request.username;
+        Auth.in.password = request.password;
         Auth
     }]
 
@@ -160,20 +283,25 @@ main {
     }]
 
     [validate(request)(response) {
-        session -> global.sessions.(request.token);
         AuthTokenFindByToken.in.token = request.token;
         AuthTokenFindByToken;
+        token -> AuthTokenFindByToken.out.result;
 
-        if (#AuthTokenFindByToken.out.result == 1) {
+        if (#token == 1) {
             if (is_defined(request.maxAge)) {
                 getCurrentTimeMillis@Time()(now);
-                age = now - AuthTokenFindByToken.out.result.timestamp;
+                age = now - token.timestamp;
                 response = age <= request.maxAge
             } else {
                 response = true
             };
+
             if (response) {
-                response.username = AuthTokenFindByToken.out.result.username
+                UserFindById.in.id = token.userId;
+                UserFindById;
+                user -> UserFindById.out.result;
+
+                response.username = user.username
             }
         }
     }]
@@ -181,9 +309,9 @@ main {
     [createGroup(request)(response) {
         groupName = request.groupName;
         GroupRequireNonAuth;
-        global.groups.(groupName) << {
-            .name = groupName
-        }
+
+        GroupCreateWithDefaultRights.in.groupName = groupName;
+        GroupCreateWithDefaultRights
     }]
 
     [deleteGroup(request)(response) {
@@ -194,96 +322,175 @@ main {
     }]
 
     [changeGroupRights(request)(response) {
+        // TODO Remember to re-use group_rights
         groupName = request.groupName;
         GroupRequireNonAuth;
-        GroupFind;
+
+        GroupFindByGroupName.in.groupName = groupName;
+        GroupFindByGroupName;
+        group -> GroupFindByGroupName.out.result;
+
+        if (#group == 0) {
+            throw(AuthorizationFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Unknown group!"
+            })
+        };
+
+        GroupRightsByGroupName.in.groupName = groupName;
+        GroupRightsByGroupName;
+        resources -> GroupRightsByGroupName.out.resource;
+
+        // Pre-process the data to figure out the following:
+        //     grToCreate: Set<String>
+        //     rrToCreate: Map<String, Set<String>e
+        //     rrToDelete[*]: long
+
         change -> request.change[i];
         for (i = 0, i < #request.change, i++) {
-            if (change.grant) {
-                group.rights.(change.key).(change.right) = true
-            } else {
-                undef(group.rights.(change.key).(change.right))
+            if (!is_defined(resource.(change.key))) {
+                grToCreate.(change.key) = true
             }
+            hasRight = is_defined(resources.(change.key).(change.right);
+
+            if (change.grant) {
+                if (!hasRight) {
+                    rrToCreate.(change.key).(change.right) = true
+                }
+            } else {
+                if (hasRight) {
+                    rrToDelete[#rrToDelete] = resources.
+                        (change.key).(change.right);
+                }
+            }
+        };
+
+        // Perform updates
+        stmt -> t.statement;
+
+        // Create all group_rights that are needed
+        foreach (gr : grToCreate) {
+            
         }
     }]
 
     [addGroupMembers(request)(response) {
+        DatabaseConnect;
+
         groupName = request.groupName;
         GroupRequireNonAuth;
-        GroupFind;
+
+        GroupFindByGroupName.in.groupName = groupName;
+        GroupFindByGroupName;
+        group -> GroupFindByGroupName.out.result;
+
+        if (#group == 0) {
+            throw(AuthorizationFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Group does not exist!"
+            })
+        };
+
+        userQ = "
+            SELECT
+                `id`,
+                `username`
+            FROM
+                `user`
+            WHERE
+                `username` IN (";
+
         for (i = 0, i < #request.users, i++) {
-            group.members[#group.members] = request.users[i]
-        }
+            if (i > 0) userQ += ", ";
+            userQ += ":user" + i;
+            userQ.("user" + i) = request.users[i]
+        };
+        userQ += ")";
+
+        valueToPrettyString@StringUtils(userQ)(pretty);
+        println@Console(pretty)();
+        query@Database(userQ)(resultUsers);
+
+        if (#resultUsers.row != #request.users) {
+            println@Console("Could not find all users to add!")();
+            println@Console("Expected to find " + #request.users + ", " +
+                    "but only found " + #resultUsers.row)()
+        };
+
+        for (i = 0, i < #resultUsers.row, i++) {
+            idx = #t.statement;
+            t.statement[idx] = "INSERT INTO `group_member`
+                (`userId`, `groupId`) VALUES (:userId, :groupId);";
+            t.statement[idx].userId = resultUsers.row[i].id;
+            t.statement[idx].groupId = group.id
+        };
+
+        executeTransaction@Database(t)()
     }]
 
     [removeGroupMembers(request)(response) {
+        // TODO Never tested
+        DatabaseConnect;
+
         groupName = request.groupName;
         GroupRequireNonAuth;
-        GroupFind;
-        userToDelete -> request.users[i];
-        for (i = 0, i < request.users, i++) {
-            keepRun = true;
-            for (j = 0, j < #group.members && keepRun, j++) {
-                if (group.members[j] == userToDelete) {
-                    undef(group.members[j]);
-                    keepRun = false
-                }
-            }
-        }
+
+        GroupFindByGroupName.in.groupName = groupName;
+        GroupFindByGroupName;
+        group -> GroupFindByGroupName.out.result;
+
+        deleteQ = "
+            DELETE FROM group_member WHERE userId IN (
+                SELECT id FROM `user` WHERE `username` IN (%USER_LIST%)
+            );
+        ";
+
+        for (i = 0, i <= #request.users, i++) {
+            if (i > 0) userParamsList = ", ";
+            usersParamsList += ":user" + i;
+            deleteQ.(":user" + i) = request.users[i]
+        };
+
+        replaceAll@StringUtils(deleteQ {
+            .regex = "%USER_LIST%",
+            .replacement = userParamList
+        })(deleteQ);
+
+        update@Database(deleteQ)()
     }]
 
     [getGroup(request)(response) {
-        groupName = request.groupName;
-        GroupRequireNonAuth;
-        GroupFind;
-        response.name = groupName;
-        response.members -> group.members;
-        foreach (object : group.rights) {
-            o.key = object;
-            foreach (right : group.rights.(object)) {
-                o.rights[#o.rights] = right
-            };
-            response.objects[#response.objects] << o
-        }
+        nullProcess // TODO Do we need this?
     }]
 
     [listGroupsByUser(request)(response) {
-        username = request.username;
-        FindAllGroupsForUsername;
-        response.groups -> groups
+        nullProcess // TODO Do we need this?
     }]
 
     [hasAllOfRights(request)(response) {
+        UserRightsByToken.in.token = request.token;
+        UserRightsByToken;
+        resources -> UserRightsByToken.out.resource;
+
         response = true;
-        token = request.token;
-        FindAllGroupsForToken;
-        group -> global.groups.(groups[j]);
-        for (i = 0, i < #groups && response, i++) {
-            found = false;
-            for (j = 0, j < #groups && !found, j++) {
-                if (!is_defined(group.rights
-                        .(request.check[i].key).(request.check[i].right))) {
-                    found = true
-                }
-            };
-            if (!found) {
+        currentCheck = request.check[i];
+        for (i = 0, i < #request.check && response, i++) {
+            if (!is_defined(resources.(key).(right))) {
                 response = false
             }
         }
     }]
 
     [hasAnyOfRights(request)(response) {
+        UserRightsByToken.in.token = request.token;
+        UserRightsByToken;
+        resources -> UserRightsByToken.out.resource;
+
         response = false;
-        token = request.token;
-        FindAllGroupsForToken;
-        group -> global.groups.(groups[j]);
-        currentCheck -> request.check[i];
+        currentCheck = request.check[i];
         for (i = 0, i < #request.check && !response, i++) {
-            for (j = 0, j < #groups && !response, j++) {
-                if (is_defined(group.rights
-                        .(currentCheck.key).(currentCheck.right))) {
-                    response = true
-                }
+            if (is_defined(resources.(key).(right))) {
+                response = true
             }
         }
     }]
@@ -291,7 +498,31 @@ main {
     [revokeRights(request)(response) {
         groupName = request.groupName;
         GroupRequireNonAuth;
-        GroupFind;
-        undef(group.rights.(request.key))
+
+        GroupFindByGroupName.in.groupName = groupName;
+        GroupFindByGroupName;
+        group -> GroupFindByGroupName.out.result;
+
+        if (#group == 0) {
+            throw(AuthorizationFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Unknown group"
+            })
+        };
+
+        q = "
+            DELETE FROM resource_rights WHERE group_rightsId IN (
+                SELECT gr.id
+                FROM
+                    group g,
+                    group_rights gr
+                WHERE
+                    g.id = gr.groupId AND
+                    gr.resource = :resource
+            );
+        ";
+        q.resource = request.key;
+        update@Database(q)()
     }]
 }
+
