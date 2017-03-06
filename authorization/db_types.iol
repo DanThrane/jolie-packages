@@ -16,10 +16,6 @@ type GroupMember: void {
 type GroupRights: void {
     .group: Group
     .resource: string
-}
-
-type ResourceRight: void {
-    .groupRights: GroupRights
     .value: string
 }
 

@@ -18,6 +18,7 @@ class JPM(
         val PACKAGES_FOLDER_NAME = "jpm_packages"
 
         val TEST_DATABASE_LOC = File("/tmp/registry-test.db")
+        val TEST_DATABASE_LOC2 = File("/tmp/auth-test.db")
         val TEST_DATA_DIR = File("/tmp/registry-data")
         val DEPLOY_REGISTRY = JPM(
                 File(System.getenv("JPM_CLI_HOME"), "../registry"),
@@ -34,6 +35,10 @@ class JPM(
 
             if (TEST_DATABASE_LOC.exists()) {
                 assert(TEST_DATABASE_LOC.delete())
+            }
+
+            if (TEST_DATABASE_LOC2.exists()) {
+                assert(TEST_DATABASE_LOC2.delete())
             }
 
             if (TEST_DATA_DIR.exists()) {

@@ -79,9 +79,6 @@ define Auth {
     UserFindByUsername;
     Auth.user -> UserFindByUsername.out.result;
 
-    valueToPrettyString@StringUtils(Auth.user)(pretty);
-    println@Console(pretty)();
-
     if (#Auth.user != 1) {
         throw(AuthorizationFault, Auth.invalidError)
     };
@@ -138,25 +135,24 @@ define GroupCreateWithDefaultRights {
 
     // Grant default rights to group
     foreach (resource : AUTH_DEFAULT_RIGHTS) {
-        GroupRightsCreate.in.groupId = GroupCreate.out.id;
-        GroupRightsCreate.in.resource = resource;
-        GroupRightsCreate;
-
+        undef(rights);
         rights << AUTH_DEFAULT_RIGHTS.(resource);
         foreach (right : rights) {
             idx = #t.statement;
-            t.statement[idx] = "INSERT INTO `resource_right`
-                (`group_rightsId`, `value`)
-                VALUES (:gr, :value)";
-            t.statement[idx].gr = GroupRightsCreate.out.id;
+            t.statement[idx] = "
+                INSERT INTO group_rights
+                    (`groupId`, `resource`, `value`)
+                VALUES
+                    (:groupId, :resource, :value)
+            ";
+            t.statement[idx].groupId = GroupCreate.out.id;
+            t.statement[idx].resource = resource;
             t.statement[idx].value = right
-        };
-        executeTransaction@Database(t)();
-
-        undef(rights);
-        undef(t)
+        }
     };
-
+    if (#t.statement > 0) {
+        executeTransaction@Database(t)()
+    };
     ns.out.groupId = GroupCreate.out.id
 }
 
@@ -172,15 +168,12 @@ define GroupRightsByGroupName {
         SELECT
             gr.id AS gr_id,
             gr.resource AS resource,
-            rr.id AS rr_id,
-            rr.value AS value
+            gr.value AS value
         FROM
             group_rights gr,
-            resource_right rr,
-            group g
+            `group` g
         WHERE
             g.id = gr.groupId AND
-            gr.id = rr.group_rightsId AND
             g.groupName = :groupName
     ";
 
@@ -191,7 +184,7 @@ define GroupRightsByGroupName {
     for (i = 0, i < #ns.result.row, i++) {
         ns.out.resource.(ns.currentRow.resource) = ns.currentRow.gr_id;
         ns.out.resource.(ns.currentRow.resource).(ns.currentRow.value) =
-            ns.currentRow.rr_id
+            true
     }
 }
 
@@ -201,24 +194,21 @@ define GroupRightsByGroupName {
  */
 define UserRightsByToken {
     DatabaseConnect;
-    ns -> UserRightsByUsername;
+    ns -> UserRightsByToken;
 
     ns.q = "
         SELECT
             gr.id AS gr_id,
             gr.resource AS resource,
-            rr.id AS rr_id,
-            rr.value AS value
+            gr.value AS value
         FROM
             group_rights gr,
-            resource_right rr,
-            group g,
+            `group` g,
             group_member gm,
             `user` u,
             auth_token t
         WHERE
             g.id = gr.groupId AND
-            gr.id = rr.group_rightsId AND
             gm.groupId = g.id AND
             gm.userId = u.id AND
             t.userId = u.id AND
@@ -230,9 +220,8 @@ define UserRightsByToken {
 
     ns.currentRow -> ns.result.row[i];
     for (i = 0, i < #ns.result.row, i++) {
-        ns.out.resource.(ns.currentRow.resource) = ns.currentRow.gr_id;
         ns.out.resource.(ns.currentRow.resource).(ns.currentRow.value) =
-            ns.currentRow.rr_id;
+            ns.currentRow.gr_id
     }
 }
 
@@ -287,6 +276,7 @@ main {
         AuthTokenFindByToken;
         token -> AuthTokenFindByToken.out.result;
 
+        response = false;
         if (#token == 1) {
             if (is_defined(request.maxAge)) {
                 getCurrentTimeMillis@Time()(now);
@@ -322,7 +312,6 @@ main {
     }]
 
     [changeGroupRights(request)(response) {
-        // TODO Remember to re-use group_rights
         groupName = request.groupName;
         GroupRequireNonAuth;
 
@@ -337,41 +326,42 @@ main {
             })
         };
 
-        GroupRightsByGroupName.in.groupName = groupName;
-        GroupRightsByGroupName;
-        resources -> GroupRightsByGroupName.out.resource;
-
-        // Pre-process the data to figure out the following:
-        //     grToCreate: Set<String>
-        //     rrToCreate: Map<String, Set<String>e
-        //     rrToDelete[*]: long
-
         change -> request.change[i];
         for (i = 0, i < #request.change, i++) {
-            if (!is_defined(resource.(change.key))) {
-                grToCreate.(change.key) = true
-            }
-            hasRight = is_defined(resources.(change.key).(change.right);
-
             if (change.grant) {
-                if (!hasRight) {
-                    rrToCreate.(change.key).(change.right) = true
-                }
+                undef(insertQ);
+                insertQ = "
+                    INSERT INTO group_rights (groupId, resource, value)
+                      SELECT :groupId, :resource, :value
+                      EXCEPT
+                      SELECT groupId, resource, value
+                      FROM group_rights
+                      WHERE
+                        groupId = :groupId AND
+                        resource = :resource AND
+                        value = :value
+                ";
+                insertQ.groupId = group.id;
+                insertQ.resource = change.key;
+                insertQ.value = change.right;
+                batch.statement[#batch.statement] << insertQ
             } else {
-                if (hasRight) {
-                    rrToDelete[#rrToDelete] = resources.
-                        (change.key).(change.right);
-                }
+                undef(deleteQ);
+                deleteQ = "
+                    DELETE FROM group_rights
+                    WHERE
+                        group_id = :groupId AND
+                        resource = :resource AND
+                        value = :value
+                ";
+                deleteQ.groupId = group.id;
+                deleteQ.resource = change.key;
+                deleteQ.value = change.right;
+
+                batch.statement[#batch.statement] << deleteQ
             }
         };
-
-        // Perform updates
-        stmt -> t.statement;
-
-        // Create all group_rights that are needed
-        foreach (gr : grToCreate) {
-            
-        }
+        executeTransaction@Database(batch)()
     }]
 
     [addGroupMembers(request)(response) {
@@ -393,8 +383,7 @@ main {
 
         userQ = "
             SELECT
-                `id`,
-                `username`
+                `id`,`username`
             FROM
                 `user`
             WHERE
@@ -407,8 +396,6 @@ main {
         };
         userQ += ")";
 
-        valueToPrettyString@StringUtils(userQ)(pretty);
-        println@Console(pretty)();
         query@Database(userQ)(resultUsers);
 
         if (#resultUsers.row != #request.users) {
@@ -473,9 +460,10 @@ main {
         resources -> UserRightsByToken.out.resource;
 
         response = true;
-        currentCheck = request.check[i];
+        currentCheck -> request.check[i];
         for (i = 0, i < #request.check && response, i++) {
-            if (!is_defined(resources.(key).(right))) {
+            if (!is_defined(resources.(currentCheck.key)
+                        .(currentCheck.right))) {
                 response = false
             }
         }
@@ -487,9 +475,10 @@ main {
         resources -> UserRightsByToken.out.resource;
 
         response = false;
-        currentCheck = request.check[i];
+        currentCheck -> request.check[i];
         for (i = 0, i < #request.check && !response, i++) {
-            if (is_defined(resources.(key).(right))) {
+            if (is_defined(resources.(currentCheck.key)
+                        .(currentCheck.right))) {
                 response = true
             }
         }
@@ -511,16 +500,12 @@ main {
         };
 
         q = "
-            DELETE FROM resource_rights WHERE group_rightsId IN (
-                SELECT gr.id
-                FROM
-                    group g,
-                    group_rights gr
-                WHERE
-                    g.id = gr.groupId AND
-                    gr.resource = :resource
-            );
+            DELETE FROM group_rights
+            WHERE
+                groupId = :groupId AND
+                resource = :resource
         ";
+        q.groupId = group.id;
         q.resource = request.key;
         update@Database(q)()
     }]

@@ -1,5 +1,6 @@
 profile "reg-test" configures "registry" {
     outputPort RegDB embeds "regdb-test",
+    outputPort Authorization embeds "auth-test",
     ENABLE_KILL_COMMAND = true,
     KILL_TOKEN = "1234",
     DATA_DIR = "/tmp/registry-data"
@@ -12,4 +13,13 @@ profile "regdb-test" configures "registry-database" {
     DATABASE_HOST = "",
     DATABASE_BASE = "/tmp/registry-test.db",
     DATABASE_DRIVER = "sqlite",
+}
+
+profile "auth-test" configures "authorization" {
+    inputPort Authorization { Location: "local" Protocol: sodep },
+    AUTH_DATABASE_USERNAME = "",
+    AUTH_DATABASE_PASSWORD = "",
+    AUTH_DATABASE_HOST = "",
+    AUTH_DATABASE_BASE = "/tmp/auth-test.db",
+    AUTH_DATABASE_DRIVER = "sqlite",
 }

@@ -38,17 +38,8 @@ define DatabaseInit {
             id INTEGER PRIMARY KEY,
             groupId INTERGER,
             resource TEXT,
-            FOREIGN KEY (groupId) REFERENCES 'group'
-        );
-    ";
-    update@Database(DatabaseInit.q)();
-
-    DatabaseInit.q = "
-        CREATE TABLE IF NOT EXISTS 'resource_right' (
-            id INTEGER PRIMARY KEY,
-            group_rightsId INTERGER,
             value TEXT,
-            FOREIGN KEY (group_rightsId) REFERENCES 'group_rights'
+            FOREIGN KEY (groupId) REFERENCES 'group'
         );
     ";
     update@Database(DatabaseInit.q)();
@@ -282,11 +273,12 @@ define GroupMemberDeleteByGroupId {
 define GroupRightsCreate {
     DatabaseConnect;
     GroupRightsCreate.q.statement[0] = "
-        INSERT INTO `group_rights` (`groupId`, `resource`)
-        VALUES (:groupId, :resource)
+        INSERT INTO `group_rights` (`groupId`, `resource`, `value`)
+        VALUES (:groupId, :resource, :value)
     ";
     GroupRightsCreate.q.statement[0].groupId = GroupRightsCreate.in.groupId;
     GroupRightsCreate.q.statement[0].resource = GroupRightsCreate.in.resource;
+    GroupRightsCreate.q.statement[0].value = GroupRightsCreate.in.value;
     GroupRightsCreate.q.statement[1] = "SELECT last_insert_rowid() AS id";
     executeTransaction@Database(GroupRightsCreate.q)(GroupRightsCreate.t);
     GroupRightsCreate.out.id = GroupRightsCreate.t.result[1].row[0].id
@@ -300,7 +292,7 @@ define GroupRightsDeleteById {
 define GroupRightsFindById {
     DatabaseConnect;
     GroupRightsFindById.q = "
-        SELECT `id`, `groupId`, `resource`
+        SELECT `id`, `groupId`, `resource`, `value`
         FROM `group_rights`
         WHERE id = :id
     ";
@@ -315,7 +307,7 @@ define GroupRightsFindById {
 define GroupRightsFindByGroupId {
     DatabaseConnect;
     GroupRightsFindByGroupId.q = "
-        SELECT `id`, `groupId`, `resource`
+        SELECT `id`, `groupId`, `resource`, `value`
         FROM `group_rights`
         WHERE groupId = :groupId
     ";
@@ -338,7 +330,7 @@ define GroupRightsDeleteByGroupId {
 define GroupRightsFindByResource {
     DatabaseConnect;
     GroupRightsFindByResource.q = "
-        SELECT `id`, `groupId`, `resource`
+        SELECT `id`, `groupId`, `resource`, `value`
         FROM `group_rights`
         WHERE resource = :resource
     ";
@@ -358,83 +350,27 @@ define GroupRightsDeleteByResource {
     update@Database(GroupRightsDeleteByResource.q)(GroupRightsDeleteByResource.out.result)
 }
 
-define ResourceRightCreate {
+define GroupRightsFindByValue {
     DatabaseConnect;
-    ResourceRightCreate.q.statement[0] = "
-        INSERT INTO `resource_right` (`group_rightsId`, `value`)
-        VALUES (:group_rightsId, :value)
-    ";
-    ResourceRightCreate.q.statement[0].group_rightsId = ResourceRightCreate.in.group_rightsId;
-    ResourceRightCreate.q.statement[0].value = ResourceRightCreate.in.value;
-    ResourceRightCreate.q.statement[1] = "SELECT last_insert_rowid() AS id";
-    executeTransaction@Database(ResourceRightCreate.q)(ResourceRightCreate.t);
-    ResourceRightCreate.out.id = ResourceRightCreate.t.result[1].row[0].id
-}
-define ResourceRightDeleteById {
-    DatabaseConnect;
-    ResourceRightDeleteById.q = "DELETE FROM `resource_right` WHERE `id` = :id";
-    ResourceRightDeleteById.q.id = ResourceRightDeleteById.in.id;
-    update@Database(ResourceRightDeleteById.q)(ResourceRightDeleteById.out.result)
-}
-define ResourceRightFindById {
-    DatabaseConnect;
-    ResourceRightFindById.q = "
-        SELECT `id`, `group_rightsId`, `value`
-        FROM `resource_right`
-        WHERE id = :id
-    ";
-    ResourceRightFindById.q.id = ResourceRightFindById.in.id;
-    query@Database(ResourceRightFindById.q)(ResourceRightFindById.result);
-    ResourceRightFindById._i = i;
-    for (i = 0, i < #ResourceRightFindById.result.row, i++) {
-        ResourceRightFindById.out.result[#ResourceRightFindById.out.result] << ResourceRightFindById.result.row[i]
-    };
-    i = ResourceRightFindById._i
-}
-define ResourceRightFindByGroupRightsId {
-    DatabaseConnect;
-    ResourceRightFindByGroupRightsId.q = "
-        SELECT `id`, `group_rightsId`, `value`
-        FROM `resource_right`
-        WHERE group_rightsId = :group_rightsId
-    ";
-    ResourceRightFindByGroupRightsId.q.group_rightsId = ResourceRightFindByGroupRightsId.in.group_rightsId;
-    query@Database(ResourceRightFindByGroupRightsId.q)(ResourceRightFindByGroupRightsId.result);
-    ResourceRightFindByGroupRightsId._i = i;
-    for (i = 0, i < #ResourceRightFindByGroupRightsId.result.row, i++) {
-        ResourceRightFindByGroupRightsId.out.result[#ResourceRightFindByGroupRightsId.out.result] << ResourceRightFindByGroupRightsId.result.row[i]
-    };
-    i = ResourceRightFindByGroupRightsId._i
-}
-
-define ResourceRightDeleteByGroupRightsId {
-    DatabaseConnect;
-    ResourceRightDeleteByGroupRightsId.q = "DELETE FROM `resource_right` WHERE `group_rightsId` = :group_rightsId";
-    ResourceRightDeleteByGroupRightsId.q.group_rightsId = ResourceRightDeleteByGroupRightsId.in.group_rightsId;
-    update@Database(ResourceRightDeleteByGroupRightsId.q)(ResourceRightDeleteByGroupRightsId.out.result)
-}
-
-define ResourceRightFindByValue {
-    DatabaseConnect;
-    ResourceRightFindByValue.q = "
-        SELECT `id`, `group_rightsId`, `value`
-        FROM `resource_right`
+    GroupRightsFindByValue.q = "
+        SELECT `id`, `groupId`, `resource`, `value`
+        FROM `group_rights`
         WHERE value = :value
     ";
-    ResourceRightFindByValue.q.value = ResourceRightFindByValue.in.value;
-    query@Database(ResourceRightFindByValue.q)(ResourceRightFindByValue.result);
-    ResourceRightFindByValue._i = i;
-    for (i = 0, i < #ResourceRightFindByValue.result.row, i++) {
-        ResourceRightFindByValue.out.result[#ResourceRightFindByValue.out.result] << ResourceRightFindByValue.result.row[i]
+    GroupRightsFindByValue.q.value = GroupRightsFindByValue.in.value;
+    query@Database(GroupRightsFindByValue.q)(GroupRightsFindByValue.result);
+    GroupRightsFindByValue._i = i;
+    for (i = 0, i < #GroupRightsFindByValue.result.row, i++) {
+        GroupRightsFindByValue.out.result[#GroupRightsFindByValue.out.result] << GroupRightsFindByValue.result.row[i]
     };
-    i = ResourceRightFindByValue._i
+    i = GroupRightsFindByValue._i
 }
 
-define ResourceRightDeleteByValue {
+define GroupRightsDeleteByValue {
     DatabaseConnect;
-    ResourceRightDeleteByValue.q = "DELETE FROM `resource_right` WHERE `value` = :value";
-    ResourceRightDeleteByValue.q.value = ResourceRightDeleteByValue.in.value;
-    update@Database(ResourceRightDeleteByValue.q)(ResourceRightDeleteByValue.out.result)
+    GroupRightsDeleteByValue.q = "DELETE FROM `group_rights` WHERE `value` = :value";
+    GroupRightsDeleteByValue.q.value = GroupRightsDeleteByValue.in.value;
+    update@Database(GroupRightsDeleteByValue.q)(GroupRightsDeleteByValue.out.result)
 }
 
 define AuthTokenCreate {
