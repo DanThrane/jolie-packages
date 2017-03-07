@@ -92,9 +92,9 @@ main {
         exists@File(cacheInstallationLocation)(hasCachedCopy);
         if (!hasCachedCopy) {
             Registry.location = request.registryLocation;
-            
+
             scope(pkgScope) {
-                install(InvalidArgumentFault => 
+                install(InvalidArgumentFault =>
                     println@Console(InvalidArgumentFault.message)()
                 );
                 install(RegistryFault =>
@@ -115,7 +115,7 @@ main {
                 println@Console("Done. Installing dependency")();
 
                 cachedPkg = cacheInstallationLocation + ".pkg";
-                writeFile@File({ 
+                writeFile@File({
                     .content = value.payload,
                     .filename = cachedPkg
                 })();
@@ -147,3 +147,4 @@ main {
         mkdir@File(PATH_CACHE)()
     }]
 }
+

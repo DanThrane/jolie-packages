@@ -1,0 +1,10 @@
+{
+    "authors": "Dan Sebastian Thrane",
+    "description": "Install target",
+    "name": "install-target",
+    "private": false,
+    "version": "0.1.0",
+    "dependencies": [
+        { "name": "depA", "version": "0.1.0", "type": "runtime" }
+    ]
+}

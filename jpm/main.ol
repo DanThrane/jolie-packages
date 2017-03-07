@@ -220,6 +220,7 @@ define DependencyTree {
                 };
                 allVersions[#allVersions] << version
             };
+
             // Find the best match for our version expression
             sortRequest.versions -> allVersions;
             sortRequest.satisfying = currDependency.version;
@@ -232,19 +233,23 @@ define DependencyTree {
                         currDependency.version + "'"
                 })
             };
+
             // Insert resolved dependency
             with (information) {
-                .version << sortedVersions.versions[#sortedVersions.versions - 1];
+                .version << sortedVersions.versions
+                    [#sortedVersions.versions - 1];
                 .registryLocation = Registry.location;
                 .registryName = registryName
             };
             resolved << information;
+
             // Insert dependencies of this dependency on the stack
             // We only do this if we are a runtime dependency.
             if (currDependency.type == DEPENDENCY_TYPE_RUNTIME) {
                 dependenciesRequest.packageName = name;
                 dependenciesRequest.version << sortedVersions.versions[0];
-                getDependencies@Registry(dependenciesRequest)(newDependencies);
+                getDependencies@Registry(dependenciesRequest)
+                    (newDependencies);
                 for (i = 0, i < #newDependencies.dependencies, i++) {
                     item << newDependencies.dependencies[i];
                     item.registry = registryName;

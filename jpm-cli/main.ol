@@ -3,7 +3,6 @@ include "runtime.iol"
 
 include "jpm" "jpm.iol"
 include "jpm-utils" "utils.iol"
-include "tables" "tables.iol"
 include "semver" "semver.iol"
 include "console-ui" "console_ui.iol"
 

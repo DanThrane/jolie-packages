@@ -8,6 +8,7 @@ import org.junit.Test
 import java.io.File
 import java.io.FileReader
 import com.github.salomonbrys.kotson.*
+import com.github.salomonbrys.kotson.*
 
 class PublishAndInstallTest {
     val SOURCE_DIR = File("jolie-tests/publish")

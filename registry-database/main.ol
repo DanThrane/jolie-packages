@@ -323,7 +323,7 @@ main {
             for (i = 0, i < sqlResponse.row, i++) {
                 sqlResponse.row[i].type = int(sqlResponse.row[i].type)
             };
-            response.dependencies -> sqlResponse.row
+            result.dependencies -> sqlResponse.row
         }
     }]
 }

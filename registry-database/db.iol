@@ -73,5 +73,7 @@ interface IRegistryDatabase {
             (RegDBCompareWithNewestResult),
         insertNewPackage(Package)(void) throws RegDBFault(ErrorMessage),
         createPackage(string)(void) throws RegDBFault(ErrorMessage),
-        getDependencies(string)(void) throws RegDBFault(ErrorMessage)
+        getDependencies
+            (RegDBGetDependenciesRequest)
+            (RegDBGetDependenciesResult) throws RegDBFault(ErrorMessage)
 }
