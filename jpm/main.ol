@@ -16,7 +16,7 @@ execution { sequential }
 
 constants {
     FOLDER_PACKAGES = "jpm_packages",
-    REGISTRY_PUBLIC = "socket://localhost:12345"
+    REGISTRY_PUBLIC: string
 }
 
 inputPort JPM {
@@ -574,21 +574,17 @@ main {
 
             TokensRequire;
 
-            println@Console("Creating file")();
             temporaryLocation = TEMP + FILE_SEP;
             pkgRequest.zipLocation = temporaryLocation;
             pkgRequest.packageLocation = global.path;
             pkgRequest.name = package.name;
             pack@Pkg(pkgRequest)();
 
-            println@Console("Reading back file from: " + temporaryLocation +
-                pkgRequest.name + ".pkg")();
             readFile@File({
                 .filename = temporaryLocation + package.name + ".pkg",
                 .format = "binary"
             })(payload);
 
-            println@Console("Publishing package")();
             publish@Registry({
                 .package = package.name,
                 .payload = payload,
@@ -600,6 +596,9 @@ main {
     [clearCache()() { clearCache@Downloader()() }]
 
     [ping(registryName)() {
+        if (registryName != "public") {
+            PackageRequired
+        };
         scope (s) {
             install(IOException =>
                 throw(ServiceFault, {

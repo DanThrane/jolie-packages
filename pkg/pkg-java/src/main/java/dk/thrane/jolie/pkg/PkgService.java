@@ -4,7 +4,6 @@ import jolie.runtime.FaultException;
 import jolie.runtime.JavaService;
 import jolie.runtime.Value;
 import jolie.runtime.embedding.RequestResponse;
-import jolie.runtime.typing.TypeCastingException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -63,6 +62,10 @@ public class PkgService extends JavaService {
                 }
 
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    if (dir.getFileName().toString().equals("jpm_packages")) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+
                     if (!folder.equals(dir)) {
                         zos.putNextEntry(new ZipEntry(folder.relativize(dir).toString() + "/"));
                         zos.closeEntry();
@@ -72,5 +75,4 @@ public class PkgService extends JavaService {
             });
         }
     }
-
 }

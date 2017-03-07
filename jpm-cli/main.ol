@@ -9,19 +9,27 @@ include "console-ui" "console_ui.iol"
 
 include "argument-parser.iol"
 
-outputPort JPM {
+ext outputPort JPM {
     Interfaces: IJPM
 }
 
+outputPort ArgumentParser {
+    Interfaces: IArgumentParser
+}
+
 embedded {
-    JoliePackage:
-        "jpm" in JPM
+    Jolie:
+        "argument-parser.ol" in ArgumentParser
 }
 
 // This needs to go after definitions used by commands
 include "commands/all.ol"
 
 main {
+    install(IOException =>
+        valueToPrettyString@StringUtils(main.IOException)(prettyEx);
+        println@Console(prettyEx)()
+    );
     install(ServiceFault =>
         errorMessage = "Error! ";
         errorMessage += main.ServiceFault.type;

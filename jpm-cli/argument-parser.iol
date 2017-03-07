@@ -21,11 +21,3 @@ interface IArgumentParser {
             throws CLIFault(ErrorMessage)
 }
 
-outputPort ArgumentParser {
-    Interfaces: IArgumentParser
-}
-
-embedded {
-    Jolie:
-        "argument-parser.ol" in ArgumentParser
-}

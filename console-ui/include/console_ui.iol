@@ -6,6 +6,11 @@ type FormatRequest: string {
     .args[0, *]: undefined
 }
 
+type RepeatRequest: void {
+    .char: string
+    .count: int
+}
+
 interface ConsoleUIIface {
   RequestResponse:
      readLine(void)(string),
@@ -21,7 +26,8 @@ interface ConsoleUIIface {
      format(FormatRequest)(string),
      formatc(FormatRequest)(string),
      printf(FormatRequest)(void),
-     printfc(FormatRequest)(void)
+     printfc(FormatRequest)(void),
+     repeat(RepeatRequest)(string)
 }
 
 outputPort ConsoleUI {

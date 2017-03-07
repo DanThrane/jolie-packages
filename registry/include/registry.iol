@@ -103,3 +103,4 @@ interface IRegistry {
         getDependencies(RegDependencyRequest)(RegDependencyResponse),
         ping(string)(string)
 }
+

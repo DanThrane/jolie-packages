@@ -1,16 +1,13 @@
 #!/bin/bash
 curr=$PWD
 cd $JPM_CLI_HOME
-suspend=$1
-shift
-port=$1
-shift
-joliedebug $suspend $port \
+joliedev \
     --pkg-folder jpm_packages/ \
     --main.jpm jpm_packages/jpm/main.ol \
     --main.jpm-cli main.ol \
     --main.packages jpm_packages/packages/main.ol \
     --main.jpm-downloader jpm_packages/jpm-downloader/main.ol \
+    --main.packages jpm_packages/packages/main.ol \
     --deploy cli-dev cli.col \
     $curr $@
 cd $curr

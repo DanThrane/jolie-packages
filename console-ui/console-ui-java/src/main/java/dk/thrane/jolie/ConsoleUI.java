@@ -129,6 +129,16 @@ public class ConsoleUI extends JavaService {
     }
 
     @RequestResponse
+    public String repeat(Value request) {
+        char aChar = request.getFirstChild("char").strValue().charAt(0);
+        int count = request.getFirstChild("count").intValue();
+
+        char[] result = new char[count];
+        Arrays.fill(result, aChar);
+        return new String(result);
+    }
+
+    @RequestResponse
     public String formatc(Value request) {
         return createColoredMessage(format(request));
     }

@@ -1,0 +1,16 @@
+profile "cli-dev" configures "jpm-cli" {
+    outputPort JPM embeds "jpm-dev"
+}
+
+profile "cli-prod" configures "jpm-cli" {
+    outputPort JPM embeds "jpm-prod"
+}
+
+profile "jpm-dev" configures "jpm" {
+    REGISTRY_PUBLIC = "socket://localhost:12345"
+}
+
+profile "jpm-prod" configures "jpm" {
+    REGISTRY_PUBLIC = "socket://46.101.188.142:12345"
+}
+

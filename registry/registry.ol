@@ -95,9 +95,9 @@ define GroupSingletonName {
 }
 
 /**
- * Creates a new group with name `groupName`. The `currentUser` will 
+ * Creates a new group with name `groupName`. The `currentUser` will
  * automatically be added to this group.
- * 
+ *
  * @input token: string
  * @input groupName: string
  * @output currentUser: string
@@ -105,7 +105,7 @@ define GroupSingletonName {
 define GroupCreate {
     scope (s) {
         install(AuthorizationFault =>
-            // TODO For now we just rethrow, but we should probably handle 
+            // TODO For now we just rethrow, but we should probably handle
             // this a bit better.
             throw(RegistryFault, s.AuthorizationFault)
         );
@@ -156,7 +156,7 @@ define GroupAddMember {
     scope (s) {
         install(AuthorizationFault =>
             throw(RegistryFault, s.AuthorizationFault)
-        );      
+        );
         GroupRequireSuperPrivileges;
 
         // TODO Check if member even exists!
@@ -198,7 +198,9 @@ define GroupeRemoveMember {
 define PackageCreate {
     // Check if package exists
     packageName = packageCreateInput.name;
-    checkIfPackageExists@RegDB({ .packageName = packageName })(packageExists);
+    checkIfPackageExists@RegDB({
+        .packageName = packageName
+    })(packageExists);
 
     if (packageExists) {
         throw(RegistryFault, {
@@ -217,16 +219,16 @@ define PackageCreate {
         install(RegDBFault => throw(RegistryFault, s.RegDBFault));
         createPackage@RegDB(packageName)()
     };
-    
+
     // Create implicit package maintainer group and insert current user
 
-    // TODO We need to validate package name early. Should probably 
+    // TODO We need to validate package name early. Should probably
     // create a mechanism for dealing with this user input.
     groupName = "pkg-maintainers." + packageName;
     GroupCreate;
     changeGroupRights@Authorization({
         .groupName = groupName,
-        
+
         .change[0].key = "packages." + packageName,
         .change[0].right = "write",
         .change[0].grant = true,
@@ -248,8 +250,8 @@ init {
     mkdir@File(FOLDER_WORK)();
 
     println@Console("
-     _ ____  __  __   ____            _     _              
-    | |  _ \\|  \\/  | |  _ \\ ___  __ _(_)___| |_ _ __ _   _ 
+     _ ____  __  __   ____            _     _
+    | |  _ \\|  \\/  | |  _ \\ ___  __ _(_)___| |_ _ __ _   _
  _  | | |_) | |\\/| | | |_) / _ \\/ _` | / __| __| '__| | | |
 | |_| |  __/| |  | | |  _ <  __/ (_| | \\__ \\ |_| |  | |_| |
  \\___/|_|   |_|  |_| |_| \\_\\___|\\__, |_|___/\\__|_|   \\__, |
@@ -260,7 +262,7 @@ init {
 
 main {
     [authenticate(req)(res) {
-        // TODO We need some clear rules on usernames and passwords. 
+        // TODO We need some clear rules on usernames and passwords.
         // We need to be sure that a maliciously crafted username won't do any
         // damage in the authorization system.
         scope (s) {
@@ -274,14 +276,14 @@ main {
 
     [register(req)(res) {
         scope (s) {
-            install(AuthorizationFault => 
+            install(AuthorizationFault =>
                 throw(RegistryFault, s.AuthorizationFault)
             );
             register@Authorization(req)(res)
         };
         groupName = "users." + req.username;
         createGroup@Authorization({ .groupName = groupName })();
-        addGroupMembers@Authorization({ 
+        addGroupMembers@Authorization({
             .groupName = groupName,
             .users[0] = req.username
         })()
@@ -327,11 +329,11 @@ main {
         version -> req.version;
 
         // Check to make sure package name is safe.
-        // Technically this should be caught be the mere existance of the 
-        // package in the database, but downloading from relative paths would 
+        // Technically this should be caught be the mere existance of the
+        // package in the database, but downloading from relative paths would
         // be _very_ bad. So we check just to be sure.
         match@StringUtils(packageName { .regex = "[a-zA-Z0-9_-]*" })(isGood);
-        
+
         if (isGood != 1) {
             throw(RegistryFault, {
                 .type = FAULT_BAD_REQUEST,
@@ -368,8 +370,8 @@ main {
         };
 
         // Check if exists internally
-        pkgFileName = FOLDER_PACKAGES + FILE_SEP + packageName + 
-                FILE_SEP + version.major + "_" + version.minor + "_" + 
+        pkgFileName = FOLDER_PACKAGES + FILE_SEP + packageName +
+                FILE_SEP + version.major + "_" + version.minor + "_" +
                 version.patch + ".pkg";
 
         exists@File(pkgFileName)(pkgExists);
@@ -388,23 +390,23 @@ main {
     }]
 
     [publish(req)(res) {
-        // TODO FIXME Keeping the entire package in RAM for the transfer is a 
-        // big problem. Could easily just start sending a gigantic file and DOS 
-        // the server easily. Is it even possible to send messages of limited 
+        // TODO FIXME Keeping the entire package in RAM for the transfer is a
+        // big problem. Could easily just start sending a gigantic file and DOS
+        // the server easily. Is it even possible to send messages of limited
         // size in Jolie?
 
-        // Update: There is not. This is a clear security vulnerability. 
+        // Update: There is not. This is a clear security vulnerability.
         // This is present in all (Jolie) sodep and http servers
 
         //
         // Automatically create package if it does not already exist.
-        // 
-        // This will also assign the correct rights to the user making the 
+        //
+        // This will also assign the correct rights to the user making the
         // request.
         //
         packageName = req.package;
-        checkIfPackageExists@RegDB({ 
-            .packageName = packageName 
+        checkIfPackageExists@RegDB({
+            .packageName = packageName
         })(packageExists);
 
         if (!packageExists) {
@@ -419,7 +421,7 @@ main {
             .check[0].key = "packages." + packageName,
             .check[0].right = "write"
         })(hasWriteRights);
-        
+
         if (!hasWriteRights) {
             throw(RegistryFault, {
                 .type = FAULT_BAD_REQUEST,
@@ -431,7 +433,7 @@ main {
         GetSafeWorkingName;
         temporaryNameAndLoc = FOLDER_WORK + FILE_SEP + temporaryName;
         temporaryFileName = temporaryNameAndLoc + ".pkg";
-        writeFile@File({ 
+        writeFile@File({
             .content = req.payload,
             .filename = temporaryFileName
         })();
@@ -448,8 +450,8 @@ main {
             );
 
             // Validate package manfiest
-            readEntry@ZipUtils({ 
-                .entry = "package.json", 
+            readEntry@ZipUtils({
+                .entry = "package.json",
                 .filename = temporaryFileName
             })(entry);
 
@@ -475,7 +477,7 @@ main {
                     .message = "Package names do not match"
                 })
             };
-    
+
             if (package.private) {
                 throw(RegistryFault, {
                     .type = FAULT_BAD_REQUEST,
@@ -487,20 +489,17 @@ main {
             verCheckReq.package.name = package.name;
             verCheckReq.package.version << package.version;
             comparePackageWithNewestVersion@RegDB(verCheckReq)(verCheckResp);
-            
+
             if (!verCheckResp.isNewest) {
                 convertToString@SemVer(verCheckResp.newestVersion)
                     (versionString);
                 throw(RegistryFault, {
                     .type = FAULT_BAD_REQUEST,
-                    .message = "Registry already contains a newer " + 
-                        "version of package '" + package.name + 
+                    .message = "Registry already contains a newer " +
+                        "version of package '" + package.name +
                         "' of version '" + versionString + "'"
                 })
             };
-
-            valueToPrettyString@StringUtils(package)(prettyPackage);
-            println@Console(prettyPackage)();
 
             // Insert package into the various databases
             insertNewPackage@RegDB(package)();
@@ -509,9 +508,9 @@ main {
             mkdir@File(baseFolder)();
             rename@File({
                 .filename = temporaryFileName,
-                .to = baseFolder + FILE_SEP + 
-                    package.version.major + "_" + 
-                    package.version.minor + "_" + 
+                .to = baseFolder + FILE_SEP +
+                    package.version.major + "_" +
+                    package.version.minor + "_" +
                     package.version.patch + ".pkg"
             })()
         }
