@@ -1,6 +1,7 @@
 {
     "name": "bcrypt",
     "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
-    "version": "0.4.0",
+    "description": "A Jolie wrapper for the BCrypt library",
+    "version": "0.4.1",
     "private": false
 }

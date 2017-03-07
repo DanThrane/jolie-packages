@@ -24,6 +24,17 @@ class PublishAndInstallTest {
     val PUBLISH_TARGET_VER2 = "publish-target2"
     val PUBLISH_TARGET_VER2_DIR = File(SOURCE_DIR, PUBLISH_TARGET_VER2)
 
+    val PUBLISH_WITH_DEP = File("jolie-tests/publish-with-dependencies")
+
+    val DEP_A = "depA"
+    val DEP_A_DIR = File(PUBLISH_WITH_DEP, DEP_A)
+
+    val DEP_B = "depB"
+    val DEP_B_DIR = File(PUBLISH_WITH_DEP, DEP_B)
+
+    val TO_PUBLISH = "toPublish"
+    val TO_PUBLISH_DIR = File(PUBLISH_WITH_DEP, TO_PUBLISH)
+
     val gson = Gson()
 
     @Test
@@ -33,6 +44,10 @@ class PublishAndInstallTest {
         assertTrue(PUBLISH_TARGET_DIR.exists())
         assertTrue(INSTALL_TARGET_NEWEST_DIR.exists())
         assertTrue(PUBLISH_TARGET_VER2_DIR.exists())
+        assertTrue(PUBLISH_WITH_DEP.exists())
+        assertTrue(DEP_A_DIR.exists())
+        assertTrue(DEP_B_DIR.exists())
+        assertTrue(TO_PUBLISH_DIR.exists())
     }
 
     @Test
@@ -90,6 +105,25 @@ class PublishAndInstallTest {
             assertTrue(manifestFile.exists())
             val newManifest = gson.fromJson<JsonObject>(FileReader(manifestFile))
             assertEquals("2.0.0", newManifest["version"].string)
+        }
+    }
+
+    @Test
+    fun testPublishAndInstallWithMultipleDependencies() {
+        JPM.withRegistry {
+            registerAndAuthenticate()
+
+            JPM(DEP_A_DIR, listOf("publish")).runAndAssert()
+            JPM(DEP_B_DIR, listOf("publish")).runAndAssert()
+
+            val installedPackages = File(TO_PUBLISH_DIR, "jpm_packages")
+            installedPackages.deleteRecursively()
+
+            JPM(TO_PUBLISH_DIR, listOf("install")).runAndAssert()
+            assertThat(installedPackages.list().toList(), hasItem("depA"))
+            assertThat(installedPackages.list().toList(), hasItem("depA"))
+
+            JPM(TO_PUBLISH_DIR, listOf("publish")).runAndAssert()
         }
     }
 

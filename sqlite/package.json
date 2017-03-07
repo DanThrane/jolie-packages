@@ -2,5 +2,7 @@
     "name": "sqlite",
     "description": "Database driver support for 'sqlite'",
     "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "private": false,
     "version": "1.0.0"
 }
+

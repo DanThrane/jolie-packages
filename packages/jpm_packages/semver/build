@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+rm -rf lib
+cd semver-java
+gradle jar
+cd ..
+mkdir lib
+cp semver-java/build/libs/*.jar lib

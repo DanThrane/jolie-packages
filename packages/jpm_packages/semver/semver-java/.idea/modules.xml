@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/SemVer.iml" filepath="$PROJECT_DIR$/.idea/modules/SemVer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/SemVer_main.iml" filepath="$PROJECT_DIR$/.idea/modules/SemVer_main.iml" group="SemVer" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/SemVer_test.iml" filepath="$PROJECT_DIR$/.idea/modules/SemVer_test.iml" group="SemVer" />
+    </modules>
+  </component>
+</project>

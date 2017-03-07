@@ -1,11 +1,14 @@
 {
   "name": "packages",
   "main": "main.ol",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "license": "MIT",
+  "description": "Validation of package.json files",
+  "private": false,
   "authors": "Dan Sebastian Thrane <dthrane@gmail.com> (github.com/DanThrane)",
   "dependencies": [
-    { "name": "semver", "version": ">=1.0.0" }
+    { "name": "semver", "version": "1.0.0" },
+    { "name": "jpm-utils", "version": "0.1.0" }
   ]
 }
 

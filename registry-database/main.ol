@@ -26,19 +26,37 @@ define DatabaseInit {
     scope (dbInit) {
         install(SQLException =>
             println@Console("Exception when initializing database")();
-            exit 
+            valueToPrettyString@StringUtils(dbInit.SQLException)(prettyEx);
+            println@Console(prettyEx)();
+            exit
         );
 
         DatabaseConnect;
-        for (i = 0, i < #INIT_SCRIPTS.(DB_VERSION), i++) {
-            update@Database(INIT_SCRIPTS.(DB_VERSION)[i])(ret)
-            // TODO Validate ret
+        scope (findVersion) {
+            install(SQLException => version = 0);
+            query@Database("SELECT currentVersion FROM meta")(v);
+            version = v.row.currentVersion
         };
-        undef(ret)
+
+        for (j = version, j < #ALL_VERSIONS.v, j++) {
+            name = ALL_VERSIONS.v[j];
+            for (i = 0, i < #INIT_SCRIPTS.(name), i++) {
+                update@Database(INIT_SCRIPTS.(name)[i])(ret)
+                // TODO Validate ret
+            }
+        };
+
+        update@Database("UPDATE meta SET currentVersion = :version" {
+            .version = #ALL_VERSIONS.v
+        })();
+
+        undef(ret);
+        undef(v)
     }
 }
 
 init {
+    install(RegDBFault => nullProcess);
     DatabaseInit
 }
 
@@ -68,16 +86,16 @@ main {
         query@Database(databaseQuery)(databaseResponse);
         result.results << databaseResponse.row
     }]
-    
+
     [checkIfPackageExists(request)(result) {
         DatabaseConnect;
         if (!is_defined(request.version)) {
             containsQuery = "
-                SELECT 
-                    COUNT(packageName) AS count 
+                SELECT
+                    COUNT(packageName) AS count
                 FROM
-                    package 
-                WHERE 
+                    package
+                WHERE
                     packageName = :packageName;
             ";
             containsQuery.packageName = request.packageName;
@@ -107,7 +125,7 @@ main {
             containsQuery.major = request.version.major;
             containsQuery.minor = request.version.minor;
             containsQuery.patch = request.version.patch;
-            
+
             query@Database(containsQuery)(sqlResponse);
             result = #sqlResponse.row == 1
         }
@@ -159,8 +177,8 @@ main {
 
     [comparePackageWithNewestVersion(request)(result) {
         DatabaseConnect;
-    
-        // Returns no rows if input version is the newest, otherwise the newest 
+
+        // Returns no rows if input version is the newest, otherwise the newest
         // version
         packageQuery = "
             SELECT
@@ -178,9 +196,9 @@ main {
                 (major = :major AND minor = :minor AND patch > :patch) OR
                 (major = :major AND minor = :minor AND patch = :patch)
               )
-            ORDER BY 
-              major DESC, 
-              minor DESC, 
+            ORDER BY
+              major DESC,
+              minor DESC,
               patch DESC
             LIMIT 1;
         ";
@@ -205,20 +223,20 @@ main {
     [insertNewPackage(package)() {
         DatabaseConnect;
         scope (insertion) {
-            install (SQLException => 
-                throw(RegDBFault, {
-                    .type = FAULT_INTERNAL,
-                    .message = "Unable to insert package"
-                })
+            install (SQLException =>
+                error.type = FAULT_INTERNAL;
+                error.message = "Unable to insert package";
+                error.details << insertion.SQLException;
+                throw(RegDBFault, error)
             );
 
             // First we insert a new version entry
             packageInsertion = "
-                INSERT INTO package_versions 
-                    (packageName, major, minor, patch, label, description, 
+                INSERT INTO package_versions
+                    (packageName, major, minor, patch, label, description,
                      license)
-                VALUES 
-                    (:packageName, :major, :minor, :patch, :label, :description, 
+                VALUES
+                    (:packageName, :major, :minor, :patch, :label, :description,
                      :license);
             ";
             packageInsertion.packageName = package.name;
@@ -226,19 +244,19 @@ main {
             packageInsertion.minor = package.version.minor;
             packageInsertion.patch = package.version.patch;
             packageInsertion.label = package.version.label;
-            packageInsertion.description = package.description; 
+            packageInsertion.description = package.description;
             packageInsertion.license = package.license;
             statements[#statements] << packageInsertion;
-            
+
             // Insert dependencies
             currDependency -> package.dependencies[i];
             for (i = 0, i < #package.dependencies, i++) {
-                // TODO Cross registry dependencies here! 
+                // TODO Cross registry dependencies here!
                 insertQuery = "
                     INSERT INTO package_dependency
                     (packageName, major, minor, patch, dependency, type, version)
-                    VALUES (:packageName, :major, :minor, :patch, :dependency, 
-                            :type, :version); 
+                    VALUES (:packageName, :major, :minor, :patch, :dependency,
+                            :type, :version);
                 ";
                 insertQuery.packageName = package.name;
                 insertQuery.major = package.version.major;
@@ -261,7 +279,7 @@ main {
     [createPackage(packageName)() {
         DatabaseConnect;
         scope (insertion) {
-            install (SQLException => 
+            install (SQLException =>
                 throw(RegDBFault, {
                     .type = FAULT_BAD_REQUEST,
                     .message = "Package already exists (SQL)"
@@ -276,7 +294,7 @@ main {
         }
     }]
 
-    [getDependencies(request)(result) { 
+    [getDependencies(request)(result) {
         scope(s) {
             install(SQLException =>
                 throw(RegDBFault, {
@@ -284,7 +302,7 @@ main {
                     .message = "Internal Error"
                 })
             );
-            
+
             DatabaseConnect;
             dependencyQuery = "
                 SELECT

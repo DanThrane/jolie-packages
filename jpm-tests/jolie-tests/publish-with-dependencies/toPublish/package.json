@@ -1,0 +1,12 @@
+{
+    "authors": "Dan Sebastian Thrane",
+    "description": "A package which should be published.",
+    "name": "toPublish",
+    "private": false,
+    "version": "0.1.0",
+    "dependencies": [
+        { "name": "depA", "version": "0.1.0" },
+        { "name": "depB", "version": "0.1.0" }
+    ]
+}
+

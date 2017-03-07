@@ -1,8 +1,7 @@
 {
     "authors": "Dan Sebastian Thrane <dthrane@gmail.com> (github.com/DanThrane)",
-    "description": "A Jolie wrapper for the Mustache templating engine.",
-    "name": "mustache",
+    "description": "A wrapper for execution of applications",
+    "name": "execution",
     "private": false,
     "version": "0.1.0"
 }
-

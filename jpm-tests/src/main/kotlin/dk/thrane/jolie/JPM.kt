@@ -29,7 +29,7 @@ class JPM(
                 listOf("start", "--deploy", "testenv-kill", "deployment.col")
         )
 
-        fun withRegistry(printIO: Boolean = false, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
+        fun withRegistry(printIO: Boolean = true, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
             val registryProcess = JPM.DEPLOY_REGISTRY.startProcess()
             var ready = false
 
@@ -76,7 +76,7 @@ class JPM(
     fun startProcess(): Process {
         val builder = ProcessBuilder()
         builder.directory(folder)
-        builder.command(listOf("jpm") + command)
+        builder.command(listOf("jpmdev") + command)
         if (input != null) {
             builder.redirectInput(input)
         }
@@ -128,6 +128,10 @@ class JPMResult(
         val exitMessage: String?
 ) {
     fun assertSuccess(): JPMResult {
+        if (exitCode != 0 || exitMessage != null) {
+            stdOut.forEach(::println)
+            stdErr.forEach { System.err.println(it) }
+        }
         assertEquals(0, exitCode)
         assertNull(exitMessage)
         return this
