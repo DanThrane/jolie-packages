@@ -1,5 +1,8 @@
 type YesNoPromptRequest: string {
     .defaultValue?: bool
+    .bold?: bool
+    .border?: bool
+    .prompt?: string
 }
 
 type FormatRequest: string {
@@ -11,11 +14,17 @@ type RepeatRequest: void {
     .count: int
 }
 
+type PromptRequest: string {
+    .bold?: bool
+    .border?: bool
+    .prompt?: string
+}
+
 interface ConsoleUIIface {
   RequestResponse:
      readLine(void)(string),
      hasNextLine(void)(bool),
-     displayPrompt(string)(string),
+     displayPrompt(PromptRequest)(string),
      displayYesNoPrompt(YesNoPromptRequest)(bool),
      displaySpinner(void)(void),
      stopSpinner(void)(void),

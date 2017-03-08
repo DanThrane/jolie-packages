@@ -33,25 +33,83 @@ public class ConsoleUI extends JavaService {
     }
 
     @RequestResponse
-    public String displayPrompt(String message) {
-        System.err.println(createColoredMessage(message) + ": ");
-        return readLine();
+    public String displayPrompt(Value request) {
+        String message = request.strValue();
+        @SuppressWarnings("SimplifiableConditionalExpression")
+        boolean boldText = request.hasChildren("bold") ? request.getFirstChild("bold").boolValue() : true;
+        @SuppressWarnings("SimplifiableConditionalExpression")
+        boolean border = request.hasChildren("border") ? request.getFirstChild("border").boolValue() : true;
+        String prompt = request.hasChildren("prompt") ? request.getFirstChild("prompt").strValue() : "> ";
+
+        String formattedMessage = message;
+        if (boldText) {
+            formattedMessage = "@|bold " + formattedMessage + "|@";
+        }
+
+        System.err.println(createColoredMessage(formattedMessage));
+
+        if (border) {
+            char[] borderTextA = new char[message.length()];
+            Arrays.fill(borderTextA, '-');
+            String borderText = new String(borderTextA);
+            if (boldText) {
+                borderText = "@|bold " + borderText + "|@";
+                borderText = createColoredMessage(borderText);
+            }
+            System.err.println(borderText);
+        }
+        System.err.print(prompt);
+        System.err.flush();
+
+        String result = readLine();
+        System.err.println();
+        return result;
     }
 
     @RequestResponse
     public Value displayYesNoPrompt(Value request) {
         String message = request.strValue();
+        @SuppressWarnings("SimplifiableConditionalExpression")
+        boolean boldText = request.hasChildren("bold") ? request.getFirstChild("bold").boolValue() : true;
+        @SuppressWarnings("SimplifiableConditionalExpression")
+        boolean border = request.hasChildren("border") ? request.getFirstChild("border").boolValue() : true;
+        String prompt = request.hasChildren("prompt") ? request.getFirstChild("prompt").strValue() : "> ";
+
         Value val = request.getFirstChild("defaultValue");
+
+        @SuppressWarnings("SimplifiableConditionalExpression")
         boolean defaultValue = (val.isDefined() && val.isBool()) ? val.boolValue() : true;
+
+        String formattedMessage = message;
+        if (boldText) {
+            formattedMessage = "@|bold " + formattedMessage + "|@";
+        }
+
+        String borderText = null;
+        if (border) {
+            char[] borderTextA = new char[message.length() + 6];
+            Arrays.fill(borderTextA, '-');
+            borderText = new String(borderTextA);
+            if (boldText) {
+                borderText = "@|bold " + borderText + "|@";
+                borderText = createColoredMessage(borderText);
+            }
+        }
+
         while (true) {
-            System.err.print(createColoredMessage(message));
+            System.err.print(createColoredMessage(formattedMessage));
             System.err.print(" ");
             if (defaultValue) {
-                System.err.print("[Y/n]: ");
+                System.err.print("[Y/n]");
             } else {
-                System.err.print("[y/N]: ");
+                System.err.print("[y/N]");
             }
             System.err.println();
+            if (border) {
+                System.err.println(borderText);
+            }
+            System.err.print(prompt);
+            System.err.flush();
 
             String line = readLine();
             Boolean value = null;
@@ -63,7 +121,9 @@ public class ConsoleUI extends JavaService {
             }
 
             if (value != null) {
-                return Value.create(value);
+                Value result = Value.create(value);
+                System.err.println();
+                return result;
             } else {
                 System.err.println("Unknown value.");
             }
