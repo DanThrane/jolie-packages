@@ -14,20 +14,26 @@ inputPort CallbackPort {
 main {
     [jpmEvent(event)] {
         if (event.type == "download-begin") {
-            printfc@ConsoleUI("@|bold,green [INFO]|@ Downloading package %s@%d.%d.%d" {
-                .args[0] = event.data.name,
-                .args[1] = event.data.info.version.major,
-                .args[2] = event.data.info.version.minor,
-                .args[3] = event.data.info.version.patch
+            printfc@ConsoleUI("@|bold ⬇️️|@ %-20s %s@%d.%d.%d" {
+                .args[0] = "Downloading",
+                .args[1] = event.data.name,
+                .args[2] = event.data.info.version.major,
+                .args[3] = event.data.info.version.minor,
+                .args[4] = event.data.info.version.patch
             })();
             displaySpinner@ConsoleUI()()
         } else if (event.type == "download-end") {
             stopSpinner@ConsoleUI()();
-            printfc@ConsoleUI("@|bold,green [INFO]|@ Downloading finished %s@%d.%d.%d" {
-                .args[0] = event.data.name,
-                .args[1] = event.data.info.version.major,
-                .args[2] = event.data.info.version.minor,
-                .args[3] = event.data.info.version.patch
+            printfc@ConsoleUI("@|bold,green ✔️|@ %-20s %s@%d.%d.%d" {
+                .args[0] = "Completed",
+                .args[1] = event.data.name,
+                .args[2] = event.data.info.version.major,
+                .args[3] = event.data.info.version.minor,
+                .args[4] = event.data.info.version.patch
+            })()
+        } else if (event.type == "info") {
+            printfc@ConsoleUI("@|bold,green [INFO]|@ %s" {
+                .args[0] = event.data
             })()
         }
     }

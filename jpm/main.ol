@@ -497,12 +497,14 @@ main {
         executionRequest.suppress = false;
         executionRequest.commands -> command;
         joinRequest.piece -> command;
-        joinRequest.delimiter = "\n";
+        joinRequest.delimiter = " \\\n    ";
         join@StringUtils(joinRequest)(prettyCommand);
 
         if (request.isVerbose) {
-            value -> command; DebugPrintValue;
-            println@Console(prettyCommand)()
+            Callback.location = global.callback;
+            callback.type = "info";
+            callback.data = "Start command:\n" + prettyCommand;
+            jpmEvent@Callback(callback)
         };
         execute@Execution(executionRequest)()
     }]
@@ -520,6 +522,7 @@ main {
 
             scope (installation) {
                 install(DownloaderFault =>
+                    // TODO Rethrow?
                     println@Console("Failed to download dependency '" +
                             dependencyName + "'")();
                     value -> installation.DownloaderFault; DebugPrintValue
