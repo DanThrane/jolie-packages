@@ -410,6 +410,7 @@ main {
         })(packageExists);
 
         if (!packageExists) {
+            // TODO Should we not validate package before we create it?
             packageCreateInput.token = req.token;
             packageCreateInput.name = req.package;
             PackageCreate

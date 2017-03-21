@@ -15,33 +15,7 @@ define HandleSearchCommand {
         query -> command.args[0];
         query@JPM({ .query = query })(results);
 
-        rowSep = "|";
-        repeat@ConsoleUI({ .char = "-", .count = 22 })(part);
-        rowSep += part;
-        rowSep += "|";
-        repeat@ConsoleUI({ .char = "-", .count = 22 })(part);
-        rowSep += part;
-        rowSep += "|";
-        repeat@ConsoleUI({ .char = "-", .count = 12 })(part);
-        rowSep += part;
-        rowSep += "|";
-        repeat@ConsoleUI({ .char = "-", .count = 12 })(part);
-        rowSep += part;
-        rowSep += "|";
-
         foreach (repository : results) {
-            b += "@|bold In repository: %s|@\n\n";
-            b += rowSep + "\n";
-            // Need to add the length of formatting, otherwise we won't get the
-            // correct formatting.
-            b += "| %-29s | %-29s | %-19s | %-19s |\n";
-            b += rowSep + "\n";
-            b.args[0] = repository;
-            b.args[1] = "@|bold Name|@";
-            b.args[2] = "@|bold Description|@";
-            b.args[3] = "@|bold Version|@";
-            b.args[4] = "@|bold License|@";
-
             r.values -> results.(repository).results;
 
             currentValue -> r.values[i];
@@ -54,14 +28,21 @@ define HandleSearchCommand {
                 };
                 convertToString@SemVer(version)(versionString);
 
-                b += "| %-20s | %-20s | %-10s | %-10s |\n";
+                b += "@|bold %s@%s|@/%s @|green %s|@\n";
+                b += "  %s\n\n";
                 b.args[#b.args] = currentValue.packageName;
-                b.args[#b.args] = currentValue.description;
                 b.args[#b.args] = versionString;
-                b.args[#b.args] = currentValue.license
+                b.args[#b.args] = repository;
+                b.args[#b.args] = currentValue.license;
+                b.args[#b.args] = currentValue.description
             };
-            b += rowSep + "\n";
-            printfc@ConsoleUI(b)()
+            if (#r.values == 0) {
+                printfc@ConsoleUI("No results in %s" {
+                    .args[0] = repository
+                })()
+            } else {
+                printfc@ConsoleUI(b)()
+            }
         }
     }
 }

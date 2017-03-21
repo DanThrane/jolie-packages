@@ -1,17 +1,58 @@
 {
     "name": "registry",
     "description": "The JPM registry",
-    "version": "0.1.0",
-    "main": "registry.ol",
-    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
     "license": "MIT",
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
+    "main": "registry.ol",
+    "version": "0.1.0",
+    "private": false,
     "dependencies": [
-        { "name": "packages", "version": "*" },
-        { "name": "pkg", "version": "*" },
-        { "name": "semver", "version": "*" },
-        { "name": "sqlite", "version": "*" },
-        { "name": "authorization", "version": "*", "type": "interface" },
-        { "name": "registry-database", "version": "*" }
+        {
+            "name": "packages",
+            "version": "0.1.0"
+        },
+        {
+            "name": "pkg",
+            "version": "1.0.0"
+        },
+        {
+            "name": "semver",
+            "version": "1.0.0"
+        },
+        {
+            "name": "sqlite",
+            "version": "1.0.0"
+        },
+        {
+            "name": "authorization",
+            "version": "1.0.0"
+        },
+        {
+            "name": "registry-database",
+            "version": "0.1.0"
+        },
+        {
+            "name": "jpm-utils",
+            "version": "0.1.0"
+        }
+    ],
+    "interfaceDependencies": [
+        {
+            "name": "packages",
+            "version": "0.1.0"
+        },
+        {
+            "name": "semver",
+            "version": "1.0.0"
+        },
+        {
+            "name": "jpm-utils",
+            "version": "0.1.0"
+        },
+        {
+            "name": "registry-database",
+            "version": "0.1.0"
+        }
     ]
 }
 

@@ -7,8 +7,8 @@
     "main": "main.ol",
     "private": false,
     "dependencies": [
-        { "name": "packages", "version" "*" },
-        { "name": "sqlite", "version" "*" },
-        { "name": "jpm-utils", "version" "*" }
+        { "name": "packages", "version": "0.1.0" },
+        { "name": "sqlite", "version": "1.0.0" },
+        { "name": "jpm-utils", "version": "0.1.0" }
     ]
 }

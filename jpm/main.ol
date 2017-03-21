@@ -174,8 +174,21 @@ define RegistrySetLocation {
 define DependencyTree {
     PackageRequired;
 
-    debug = 0;
+    // Add all runtime dependencies to the stack
     dependencyStack << package.dependencies;
+
+    // First iterate through runtime dependencies, then interface dependencies
+    // When the stack size initially reaches 0, we will push the interface
+    // dependencies onto the stack.
+    isRuntimeDependency = true;
+
+    // Except if we have no ordinary dependencies, in that case, add all of
+    // the interface dependencies now.
+    if (#dependencyStack == 0) {
+        dependencyStack << package.interfaceDependencies;
+        isRuntimeDependency = false
+    };
+
     currDependency -> dependencyStack[0];
     while (#dependencyStack > 0) {
         registryName = currDependency.registry;
@@ -244,23 +257,31 @@ define DependencyTree {
             resolved << information;
 
             // Insert dependencies of this dependency on the stack
-            // We only do this if we are a runtime dependency.
-            if (currDependency.type == DEPENDENCY_TYPE_RUNTIME) {
-                dependenciesRequest.packageName = name;
-                dependenciesRequest.version << sortedVersions.versions[0];
-                getDependencies@Registry(dependenciesRequest)
-                    (newDependencies);
-                for (i = 0, i < #newDependencies.dependencies, i++) {
-                    item << newDependencies.dependencies[i];
-                    item.registry = registryName;
-                    dependencyStack[#dependencyStack] << item;
-                    undef(item)
-                }
+            dependenciesRequest.packageName = name;
+            dependenciesRequest.version << sortedVersions.versions[0];
+            getDependencies@Registry(dependenciesRequest)(newDependencies);
+
+            if (isRuntimeDependency) {
+                subDependencies -> newDependencies.dependencies
+            } else {
+                subDependencies -> newDependencies.interfaceDependencies
+            };
+
+            for (i = 0, i < #subDependencies, i++) {
+                item << subDependencies[i];
+                item.registry = registryName;
+                dependencyStack[#dependencyStack] << item;
+                undef(item)
             };
             undef(allVersions)
         };
 
-        undef(dependencyStack[0])
+        undef(dependencyStack[0]);
+
+        if (#dependencyStack == 0 && isRuntimeDependency) {
+            dependencyStack << package.interfaceDependencies;
+            isRuntimeDependency = false
+        }
     }
 }
 
@@ -390,6 +411,13 @@ main {
     [start(request)() {
         PackageRequired;
         nextArgument -> command[#command];
+
+        if (!is_defined(package.main)) {
+            throw(ServiceFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Missing 'main' attribute from package manifest!"
+            })
+        };
 
         nextArgument = "joliedev";
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);

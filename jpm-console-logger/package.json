@@ -1,0 +1,11 @@
+{
+    "authors": "Dan Sebastian Thrane <dthrane@gmail.com> (github.com/DanThrane)",
+    "description": "Console logger used in JPM",
+    "name": "jpm-console-logger",
+    "private": false,
+    "version": "0.1.0",
+    "license": "MIT",
+    "dependencies": [
+        { "name": "jpm-logger", "version": "0.1.0" }
+    ]
+}

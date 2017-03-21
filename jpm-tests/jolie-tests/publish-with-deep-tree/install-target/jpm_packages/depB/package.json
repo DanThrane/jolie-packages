@@ -1,10 +1,13 @@
 {
-    "authors": "Dan Sebastian Thrane",
-    "description": "Dependency B",
+    "authors": "Dan",
+    "description": "depB",
     "name": "depB",
     "private": false,
     "version": "0.1.0",
     "dependencies": [
-        { "name": "depC", "version": "0.1.0", "type": "runtime" }
+        {
+            "name": "depC",
+            "version": "*"
+        }
     ]
 }

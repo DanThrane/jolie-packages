@@ -1,10 +1,26 @@
 {
     "name": "jpm-downloader",
+    "description": "A package for downloading JPM dependencies",
     "version": "0.1.0",
     "private": false,
     "license": "MIT",
     "main": "main.ol",
     "dependencies": [
-        { "name": "system-java", "version": "*" }
+        {
+            "name": "system-java",
+            "version": "0.1.0",
+            "type": "runtime"
+        },
+        {
+            "name": "registry",
+            "version": "0.1.0",
+            "type": "interface"
+        },
+        {
+            "name": "jpm-utils",
+            "version": "0.1.0",
+            "type": "runtime"
+        }
     ]
 }
+

@@ -1,12 +1,12 @@
 {
     "authors": "Dan",
-    "description": "depB",
-    "name": "depB",
+    "description": "installs depA as a runtime dep",
+    "name": "install-dep",
     "private": false,
     "version": "0.1.0",
     "dependencies": [
         {
-            "name": "depC",
+            "name": "depA",
             "version": "*"
         }
     ]

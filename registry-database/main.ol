@@ -10,6 +10,11 @@ ext inputPort RegDB {
     Interfaces: IRegistryDatabase
 }
 
+constants {
+    DEPENDENCY_TYPE_RUNTIME = 0,
+    DEPENDENCY_TYPE_INTERFACE = 1
+}
+
 define DatabaseConnect {
     with (connectionInfo) {
         .username = DATABASE_USERNAME;
@@ -53,6 +58,33 @@ define DatabaseInit {
         undef(ret);
         undef(v)
     }
+}
+
+/**
+ * @input package: Package
+ * @input .currDependency: Dependency
+ * @input .type: int
+ * @output adds insert statement to 'statements'
+ */
+define DependencyInsert {
+    // TODO Cross registry dependencies here!
+    ns -> DependencyInsert;
+    undef(ns.insertQuery);
+    ns.insertQuery = "
+        INSERT INTO package_dependency
+        (packageName, major, minor, patch, dependency, type, version)
+        VALUES (:packageName, :major, :minor, :patch, :dependency,
+                :type, :version);
+    ";
+    ns.insertQuery.packageName = package.name;
+    ns.insertQuery.major = package.version.major;
+    ns.insertQuery.minor = package.version.minor;
+    ns.insertQuery.patch = package.version.patch;
+    ns.insertQuery.type = ns.in.type;
+
+    ns.insertQuery.dependency = ns.in.currDependency.name;
+    ns.insertQuery.version = ns.in.currDependency.version;
+    statements[#statements] << ns.insertQuery
 }
 
 init {
@@ -249,24 +281,18 @@ main {
             statements[#statements] << packageInsertion;
 
             // Insert dependencies
-            currDependency -> package.dependencies[i];
+            DependencyInsert.in.currDependency -> package.dependencies[i];
+            DependencyInsert.in.type = DEPENDENCY_TYPE_RUNTIME;
             for (i = 0, i < #package.dependencies, i++) {
-                // TODO Cross registry dependencies here!
-                insertQuery = "
-                    INSERT INTO package_dependency
-                    (packageName, major, minor, patch, dependency, type, version)
-                    VALUES (:packageName, :major, :minor, :patch, :dependency,
-                            :type, :version);
-                ";
-                insertQuery.packageName = package.name;
-                insertQuery.major = package.version.major;
-                insertQuery.minor = package.version.minor;
-                insertQuery.patch = package.version.patch;
-                insertQuery.type = currDependency.type;
+                DependencyInsert
+            };
 
-                insertQuery.dependency = currDependency.name;
-                insertQuery.version = currDependency.version;
-                statements[#statements] << insertQuery
+            // Insert interface dependencies
+            DependencyInsert.in.currDependency ->
+                package.interfaceDependencies[i];
+            DependencyInsert.in.type = DEPENDENCY_TYPE_INTERFACE;
+            for (i = 0, i < #package.interfaceDependencies, i++) {
+                DependencyInsert
             };
 
             if (#statements > 0) {
@@ -320,10 +346,17 @@ main {
             dependencyQuery.minor = request.package.version.minor;
             dependencyQuery.patch = request.package.version.patch;
             query@Database(dependencyQuery)(sqlResponse);
-            for (i = 0, i < sqlResponse.row, i++) {
-                sqlResponse.row[i].type = int(sqlResponse.row[i].type)
-            };
-            result.dependencies -> sqlResponse.row
+            row -> sqlResponse.row[i];
+            for (i = 0, i < #sqlResponse.row, i++) {
+                type = int(row.type);
+                undef(row.type);
+                if (type == DEPENDENCY_TYPE_RUNTIME) {
+                    result.dependencies[#result.dependencies] << row
+                } else if (type == DEPENDENCY_TYPE_INTERFACE) {
+                    result.interfaceDependencies
+                        [#result.interfaceDependencies] << row
+                }
+            }
         }
     }]
 }

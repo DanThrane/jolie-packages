@@ -4,8 +4,6 @@ constants {
     VALIDATION_INFO = 0,
     VALIDATION_WARNING = 1,
     VALIDATION_ERROR = 2,
-    DEPENDENCY_TYPE_RUNTIME = 0,
-    DEPENDENCY_TYPE_INTERFACE = 1
 }
 
 type LicenseIdentifier: string
@@ -19,13 +17,10 @@ type Registry: void {
     .location: string
 }
 
-type DependencyType: int
-
 type Dependency: void {
     .name: string
     .version: SemVerExpression
     .registry: string
-    .type: DependencyType
 }
 
 type Package: void {
@@ -38,6 +33,8 @@ type Package: void {
     .authors[1, *]: Author
     .registries[0, *]: Registry
     .dependencies[0, *]: Dependency
+    .interfaceDependencies[0, *]: Dependency
+    .events?: undefined
 }
 
 type ValidationRequest: void {

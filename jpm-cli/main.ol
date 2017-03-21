@@ -5,6 +5,7 @@ include "jpm" "jpm.iol"
 include "jpm-utils" "utils.iol"
 include "semver" "semver.iol"
 include "console-ui" "console_ui.iol"
+include "execution" "execution.iol"
 
 include "argument-parser.iol"
 
@@ -22,6 +23,7 @@ embedded {
 }
 
 // This needs to go after definitions used by commands
+include "events.ol"
 include "commands/all.ol"
 
 main {
@@ -63,7 +65,8 @@ main {
         println@Console(errorMessage)()
     );
 
-    setContext@JPM(args[0])();
+    context = args[0];
+    setContext@JPM(context)();
 
     // Parse arguments
     if (#args == 1) {

@@ -59,6 +59,87 @@ define ValidationCheckForErrors {
     undef(oldI)
 }
 
+define ValidateDependencies {
+    dependency -> dependencies[i];
+    for (i = 0, i < #dependencies, i++) {
+        // Validate dependencies.name
+        validationRequest.value -> dependency;
+        validationRequest.child = "name";
+        validationRequest.type = TYPE_STRING;
+        requireChildOfType@ValidationUtil(validationRequest)
+            (validNameType);
+
+        if (!validNameType) {
+            nextItem << {
+                .type = VALIDATION_ERROR,
+                    .message = "'" + name + "[" + i +
+                        "].name' must be of type string"
+            }
+        } else {
+            packageDependency.name = dependency.name
+        };
+
+        // Validate dependencies.version
+        validationRequest.value -> dependency;
+        validationRequest.child = "version";
+        validationRequest.type = TYPE_STRING;
+        requireChildOfType@ValidationUtil(validationRequest)
+            (validVersionType);
+
+        if (!validVersionType) {
+            nextItem << {
+                .type = VALIDATION_ERROR,
+                    .message = "'" + name + "[" + i +
+                        "].version' must be of type string"
+            }
+        } else {
+            validatePartial@SemVer(dependency.version)(validPartial);
+            if (!validPartial) {
+                nextItem << {
+                    .type = VALIDATION_ERROR,
+                        .message = "'" + name + "[" + i +
+                            "].version' must be a valid version expression"
+                }
+            } else {
+                packageDependency.version = dependency.version
+            }
+        };
+
+        // Validate dependencies.registry
+        validationRequest.value -> dependency;
+        validationRequest.child = "registry";
+        validationRequest.type = TYPE_STRING;
+        optionalChildOfType@ValidationUtil(validationRequest)
+            (validRegistryType);
+
+        if (!is_defined(dependency.registry)) {
+            packageDependency.registry = "public"
+        } else {
+            if (!validRegistryType) {
+                nextItem << {
+                    .type = VALIDATION_ERROR,
+                        .message = "'" + name + "[" + i +
+                            "].registry' must be of type string"
+                }
+            } else {
+                if (!is_defined(knownRegistries.
+                            (dependency.registry))) {
+                    nextItem << {
+                        .type = VALIDATION_ERROR,
+                            .message = "'" + name + "[" + i +
+                                "].registry' contains an unknown " +
+                                "registry '" + dependency.registry + "'"
+                    }
+                } else {
+                    packageDependency.registry = dependency.registry
+                }
+            }
+        };
+
+        dependencyOutput[#dependencyOutput] << packageDependency
+    }
+}
+
 init
 {
     getFileSeparator@File()(FILE_SEP)
@@ -217,6 +298,29 @@ main
                 }
             };
 
+            // Validate events
+            if (is_defined(file.events)) {
+                foreach (eventName : file.events) {
+                    if (!is_string(eventName)) {
+                        nextItem << {
+                            .type = VALIDATION_ERROR,
+                            .message = "events." + eventName + " key must " +
+                                "be a string!"
+                        }
+                    };
+
+                    if (!is_string(file.events.(eventName))) {
+                        nextItem << {
+                            .type = VALIDATION_ERROR,
+                            .message = "events." + eventName + " value must " +
+                                "be a string!"
+                        }
+                    };
+
+                    packageBuilder.events.(eventName) = file.events.(eventName)
+                }
+            };
+
             // Validate registries
 
             // Don't really need to know where, we just need an entry for
@@ -293,102 +397,15 @@ main
             };
 
             // Validate dependencies
-            dependency -> file.dependencies[i];
-            for (i = 0, i < #file.dependencies, i++) {
-                // Validate dependencies.name
-                validationRequest.value -> dependency;
-                validationRequest.child = "name";
-                validationRequest.type = TYPE_STRING;
-                requireChildOfType@ValidationUtil(validationRequest)
-                    (validNameType);
+            dependencyOutput -> packageBuilder.dependencies;
+            dependencies -> file.dependencies;
+            name = "dependencies";
+            ValidateDependencies;
 
-                if (!validNameType) {
-                    nextItem << {
-                        .type = VALIDATION_ERROR,
-                        .message = "'dependencies[" + i +
-                            "].name' must be of type string"
-                    }
-                } else {
-                    packageDependency.name = dependency.name
-                };
-
-                // Validate dependencies.version
-                validationRequest.value -> dependency;
-                validationRequest.child = "version";
-                validationRequest.type = TYPE_STRING;
-                requireChildOfType@ValidationUtil(validationRequest)
-                    (validVersionType);
-
-                if (!validVersionType) {
-                    nextItem << {
-                        .type = VALIDATION_ERROR,
-                        .message = "'dependencies[" + i +
-                            "].version' must be of type string"
-                    }
-                } else {
-                    validatePartial@SemVer(dependency.version)(validPartial);
-                    if (!validPartial) {
-                        nextItem << {
-                            .type = VALIDATION_ERROR,
-                            .message = "'dependencies[" + i +
-                                "].version' must be a valid version expression"
-                        }
-                    } else {
-                        packageDependency.version = dependency.version
-                    }
-                };
-
-                // Validate dependencies.registry
-                validationRequest.value -> dependency;
-                validationRequest.child = "registry";
-                validationRequest.type = TYPE_STRING;
-                optionalChildOfType@ValidationUtil(validationRequest)
-                    (validRegistryType);
-
-                if (!is_defined(dependency.registry)) {
-                    packageDependency.registry = "public"
-                } else {
-                    if (!validRegistryType) {
-                        nextItem << {
-                            .type = VALIDATION_ERROR,
-                            .message = "'dependencies[" + i +
-                                "].registry' must be of type string"
-                        }
-                    } else {
-                        if (!is_defined(knownRegistries.
-                                    (dependency.registry))) {
-                            nextItem << {
-                                .type = VALIDATION_ERROR,
-                                .message = "'dependencies[" + i +
-                                    "].registry' contains an unknown " +
-                                    "registry '" + dependency.registry + "'"
-                            }
-                        } else {
-                            packageDependency.registry = dependency.registry
-                        }
-                    }
-                };
-
-                // Dependency types
-                if (is_defined(dependency.type)) {
-                    if (dependency.type == "runtime") {
-                        packageDependency.type = DEPENDENCY_TYPE_RUNTIME
-                    } else if (dependency.type == "interface") {
-                        packageDependency.type = DEPENDENCY_TYPE_INTERFACE
-                    } else {
-                        nextItem << {
-                            .type = VALIDATION_ERROR,
-                            .message = "'dependencies[" + i +"].type' is " +
-                                "unknown'"
-                        }
-                    }
-                } else {
-                    packageDependency.type = DEPENDENCY_TYPE_INTERFACE
-                };
-
-                packageBuilder.dependencies[#packageBuilder.dependencies] <<
-                    packageDependency
-            };
+            dependencyOutput -> packageBuilder.interfaceDependencies;
+            dependencies -> file.interfaceDependencies;
+            name = "interfaceDependencies";
+            ValidateDependencies;
 
             // Append processed package if we have no errors
             ValidationCheckForErrors;
@@ -396,6 +413,8 @@ main
                 response.package -> packageBuilder
             };
             response.hasErrors = hasErrors
+        } else {
+            response.hasErrors = true
         }
     }]
 }

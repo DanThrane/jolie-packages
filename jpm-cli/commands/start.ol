@@ -1,3 +1,6 @@
+include "execution" "execution.iol"
+include "string_utils.iol"
+
 init {
     global.helpText.("start") = "
 Starts the package placed in the working directory.
@@ -17,6 +20,9 @@ Options:
 define HandleStartCommand {
     if (command == "start") {
         handled = true;
+
+        EventHandle.in.name = "pre-start";
+        EventHandle;
 
         with (consumeRequest) {
             .parsed << command;
@@ -45,7 +51,10 @@ define HandleStartCommand {
             startReq.args[#startReq.args] = command.args[i]
         };
 
-        start@JPM(startReq)()
+        start@JPM(startReq)();
+
+        EventHandle.in.name = "post-start";
+        EventHandle
     }
 }
 

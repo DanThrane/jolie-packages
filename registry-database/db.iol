@@ -59,7 +59,10 @@ type RegDBGetDependenciesResult: void {
     .dependencies[0, *]: void {
         .name: string
         .version: string
-        .type: int
+    }
+    .interfaceDependencies[0, *]: void {
+        .name: string
+        .version: string
     }
 }
 
@@ -77,3 +80,4 @@ interface IRegistryDatabase {
             (RegDBGetDependenciesRequest)
             (RegDBGetDependenciesResult) throws RegDBFault(ErrorMessage)
 }
+

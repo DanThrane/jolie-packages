@@ -11,6 +11,7 @@ include "whoami.ol"
 include "cache.ol"
 include "ping.ol"
 include "test.ol"
+include "validate.ol"
 // help command must be last
 include "help.ol"
 
@@ -30,6 +31,7 @@ define HandleCommand {
     HandleWhoamiCommand;
     HandleCacheCommand;
     HandlePingCommand;
+    HandleValidateCommand;
     HandleHelpCommand;
     // end user defined commands
 

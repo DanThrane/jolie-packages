@@ -1,0 +1,13 @@
+{
+    "authors": "Dan",
+    "description": "installs depA as an interface dep",
+    "name": "install-idep",
+    "private": false,
+    "version": "0.1.0",
+    "interfaceDependencies": [
+        {
+            "name": "depA",
+            "version": "*"
+        }
+    ]
+}
