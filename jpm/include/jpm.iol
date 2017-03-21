@@ -53,12 +53,13 @@ type JPMStartRequest: void {
         .suspend: bool
         .port: int
     }
-    .isVerbose: bool 
+    .isVerbose: bool
 }
 
 interface IJPM {
     RequestResponse:
         setContext(string)(void) throws ServiceFault(ErrorMessage),
+        setCallback(string)(void),
         authenticate(JPMAuthenticationRequest)(string)
             throws ServiceFault(ErrorMessage),
         register(JPMRegistrationRequest)(string)
@@ -66,12 +67,12 @@ interface IJPM {
         logout(LogoutRequest)(void),
         whoami(JPMWhoamiRequest)(string)
             throws ServiceFault(ErrorMessage),
-        initializePackage(InitializationRequest)(void) 
+        initializePackage(InitializationRequest)(void)
             throws ServiceFault(ErrorMessage),
         start(JPMStartRequest)(void) throws ServiceFault(ErrorMessage),
-        installDependencies(void)(void) 
+        installDependencies(void)(void)
             throws ServiceFault(ErrorMessage),
-        query(JPMQueryRequest)(JPMQueryResponse) 
+        query(JPMQueryRequest)(JPMQueryResponse)
             throws ServiceFault(ErrorMessage),
         publish(JPMPublishRequest)(void) throws ServiceFault(ErrorMessage),
         clearCache(void)(void),

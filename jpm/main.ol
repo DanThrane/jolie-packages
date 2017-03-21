@@ -1,4 +1,5 @@
 include "jpm.iol"
+include "callback.iol"
 include "file.iol"
 include "json_utils.iol"
 include "string_utils.iol"
@@ -11,6 +12,7 @@ include "jpm-downloader" "downloader.iol"
 include "execution" "execution.iol"
 include "pkg" "pkg.iol"
 include "system-java" "system.iol"
+include "time.iol"
 
 execution { sequential }
 
@@ -22,6 +24,11 @@ constants {
 inputPort JPM {
     Location: "local"
     Interfaces: IJPM
+}
+
+outputPort Callback {
+    Interfaces: IJPMCallback
+    Protocol: sodep
 }
 
 outputPort Packages {
@@ -207,7 +214,9 @@ define DependencyTree {
 
         resolved -> resolvedDependencies.(currDependency.name);
         if (is_defined(resolved)) {
-            // Check if our expression matches the already selected version
+            // We might have already found this package in a previous
+            // iteratation. Check if our expression matches the already
+            // selected version.
             convertToString@SemVer(resolved.version)(versionString);
             satisfies@SemVer({
                 .version = versionString,
@@ -302,6 +311,10 @@ init {
 }
 
 main {
+    [setCallback(loc)() {
+        global.callback = loc
+    }]
+
     [setContext(path)() {
         exists@File(path)(pathExists);
         if (!pathExists) {
@@ -346,6 +359,11 @@ main {
             queryRequest.query = request.query;
             currRegistry -> registries[i];
             for (i = 0, i < #registries, i++) {
+                Callback.location = global.callback;
+                jpmEvent@Callback({
+                    .type = "query",
+                    .data.registry = currRegistry.name
+                });
                 Registry.location = currRegistry.location;
                 query@Registry(queryRequest)(registryResults);
                 nextIdx = #response.registries;
@@ -491,11 +509,15 @@ main {
 
     [installDependencies()() {
         DependencyTree;
-        println@Console("Got dependency tree:")();
-        value -> resolvedDependencies; DebugPrintValue;
 
+        Callback.location = global.callback;
         dependencyInformation -> resolvedDependencies.(dependencyName);
         foreach (dependencyName : resolvedDependencies) {
+            callback.type = "download-begin";
+            callback.data.name = dependencyName;
+            callback.data.info << dependencyInformation;
+            jpmEvent@Callback(callback);
+
             scope (installation) {
                 install(DownloaderFault =>
                     println@Console("Failed to download dependency '" +
@@ -516,7 +538,10 @@ main {
                     installRequest.token = tokens.(regLocation)
                 };
                 installDependency@Downloader(installRequest)()
-            }
+            };
+
+            callback.type = "download-end";
+            jpmEvent@Callback(callback)
         }
     }]
 

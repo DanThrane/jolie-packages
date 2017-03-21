@@ -2,6 +2,7 @@ include "console.iol"
 include "runtime.iol"
 
 include "jpm" "jpm.iol"
+include "jpm" "callback.iol"
 include "jpm-utils" "utils.iol"
 include "semver" "semver.iol"
 include "console-ui" "console_ui.iol"
@@ -17,9 +18,16 @@ outputPort ArgumentParser {
     Interfaces: IArgumentParser
 }
 
+outputPort CallbackServer {
+    Interfaces: IJPMCallback
+    Protocol: sodep
+    Interfaces: IJPMCallback
+}
+
 embedded {
     Jolie:
-        "argument-parser.ol" in ArgumentParser
+        "argument-parser.ol" in ArgumentParser,
+        "callback-server.ol" in CallbackServer
 }
 
 // This needs to go after definitions used by commands
@@ -67,6 +75,7 @@ main {
 
     context = args[0];
     setContext@JPM(context)();
+    setCallback@JPM(CALLBACK_LOCATION)();
 
     // Parse arguments
     if (#args == 1) {

@@ -144,16 +144,32 @@ public class ConsoleUI extends JavaService {
                 System.err.print("/");
                 while (!spinnerThreadSuspended) {
                     System.err.print("\b-");
+                    System.err.flush();
                     safeSleep(150);
+                    if (spinnerThreadSuspended) break;
                     System.err.print("\b\\");
+                    System.err.flush();
                     safeSleep(150);
+                    if (spinnerThreadSuspended) break;
                     System.err.print("\b/");
+                    System.err.flush();
                     safeSleep(150);
                 }
                 System.err.print("\b");
+                System.err.flush();
+                spinnerThreadSuspended = false;
+                spinnerThread = null;
             });
             spinnerThread.start();
         }
+    }
+
+    @RequestResponse
+    public void stopSpinner() {
+        if (spinnerThread != null) {
+            spinnerThread.interrupt();
+        }
+        spinnerThreadSuspended = true;
     }
 
     @RequestResponse
