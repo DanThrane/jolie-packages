@@ -294,6 +294,34 @@ define DependencyTree {
     }
 }
 
+/**
+ * @input .name: string
+ * @output .exitCode: int
+ */
+define EventHandle {
+    ns -> EventHandle;
+    PackageRequired;
+    ns.package -> package;
+    if (is_defined(ns.package.events.(ns.in.name))) {
+        ns.eventReq.directory = global.path;
+        ns.eventReq.suppress = false;
+        split@StringUtils(ns.package.events.(ns.in.name) {
+            .regex = " "
+        })(ns.split);
+        ns.eventReq.commands -> ns.split.result;
+        execute@Execution(ns.eventReq)(ns.out.exitCode);
+
+        if (ns.out.exitCode != 0) {
+            throw(ServiceFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Script for '" + ns.in.name + "' " +
+                    "exited with a non-zero status code (" +
+                    ns.out.exitCode + ")"
+            })
+        }
+    }
+}
+
 init {
     // Don't handle ServiceFaults just send them back to the invoker
     install(ServiceFault => nullProcess);
@@ -500,16 +528,26 @@ main {
         joinRequest.delimiter = " \\\n    ";
         join@StringUtils(joinRequest)(prettyCommand);
 
+        EventHandle.in.name = "pre-start";
+        EventHandle;
+
         if (request.isVerbose) {
             Callback.location = global.callback;
             callback.type = "info";
             callback.data = "Start command:\n" + prettyCommand;
             jpmEvent@Callback(callback)
         };
-        execute@Execution(executionRequest)()
+
+        execute@Execution(executionRequest)();
+
+        EventHandle.in.name = "post-start";
+        EventHandle
     }]
 
     [installDependencies()() {
+        EventHandle.in.name = "pre-install";
+        EventHandle;
+
         DependencyTree;
 
         Callback.location = global.callback;
@@ -545,7 +583,10 @@ main {
 
             callback.type = "download-end";
             jpmEvent@Callback(callback)
-        }
+        };
+
+        EventHandle.in.name = "post-install";
+        EventHandle
     }]
 
     [authenticate(req)(token) {
@@ -635,6 +676,9 @@ main {
 
             TokensRequire;
 
+            EventHandle.in.name = "pre-publish";
+            EventHandle;
+
             temporaryLocation = TEMP + FILE_SEP;
             pkgRequest.zipLocation = temporaryLocation;
             pkgRequest.packageLocation = global.path;
@@ -650,7 +694,10 @@ main {
                 .package = package.name,
                 .payload = payload,
                 .token = tokens.(Registry.location)
-            })()
+            })();
+
+            EventHandle.in.name = "post-publish";
+            EventHandle
         }
     }]
 

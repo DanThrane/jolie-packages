@@ -32,7 +32,7 @@ main {
                 .args[4] = event.data.info.version.patch
             })()
         } else if (event.type == "info") {
-            printfc@ConsoleUI("@|bold,green [INFO]|@ %s" {
+            printfc@ConsoleUI("@|bold,cyan [INFO]|@ %s" {
                 .args[0] = event.data
             })()
         }

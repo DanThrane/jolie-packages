@@ -21,9 +21,6 @@ define HandleStartCommand {
     if (command == "start") {
         handled = true;
 
-        EventHandle.in.name = "pre-start";
-        EventHandle;
-
         with (consumeRequest) {
             .parsed << command;
             .options.("deploy").count = 2;
@@ -51,10 +48,7 @@ define HandleStartCommand {
             startReq.args[#startReq.args] = command.args[i]
         };
 
-        start@JPM(startReq)();
-
-        EventHandle.in.name = "post-start";
-        EventHandle
+        start@JPM(startReq)()
     }
 }
 

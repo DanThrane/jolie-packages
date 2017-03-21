@@ -31,7 +31,6 @@ embedded {
 }
 
 // This needs to go after definitions used by commands
-include "events.ol"
 include "commands/all.ol"
 
 main {

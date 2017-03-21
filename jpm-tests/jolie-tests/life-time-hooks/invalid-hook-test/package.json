@@ -1,0 +1,16 @@
+{
+  "private": false,
+  "name": "invalid-hook-test",
+  "description": "A package which tests invalid hook execution",
+  "version": "0.1.0",
+  "authors": "Dan Sebastian Thrane <dthrane@gmail.com> (github.com/DanThrane)",
+  "main": "main.ol",
+  "events": {
+      "pre-start": "./pre pre-start",
+      "post-start": "./post post-start",
+      "pre-install": "./pre pre-install",
+      "post-install": "./post post-install",
+      "pre-publish": "./pre pre-publish",
+      "post-publish": "./post post-publish"
+  }
+}
