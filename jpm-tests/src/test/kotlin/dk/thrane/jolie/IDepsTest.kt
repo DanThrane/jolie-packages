@@ -39,6 +39,8 @@ class IDepsTest {
             val installedPackages = File(INSTALL_IDEP_TARGET_DIR, JPM.PACKAGES_FOLDER_NAME)
             deleteDirectoryNowAndOnExit(installedPackages)
 
+            File(INSTALL_DEP_TARGET_DIR, "jpm_lock.json").delete()
+
             registerAndAuthenticate()
 
             // Publish our package
@@ -62,6 +64,8 @@ class IDepsTest {
         JPM.withRegistry {
             val installedPackages = File(INSTALL_DEP_TARGET_DIR, JPM.PACKAGES_FOLDER_NAME)
             deleteDirectoryNowAndOnExit(installedPackages)
+
+            File(INSTALL_DEP_TARGET_DIR, "jpm_lock.json").delete()
 
             registerAndAuthenticate()
 

@@ -75,13 +75,54 @@ class PublishAndInstallTest {
             assertThat(startResult.stdOut, hasItem("Hello, Dan!"))
         }
     }
-
     @Test
-    fun testNewestVersionResolution() {
+    fun testThatVersionResolutionWork() {
         JPM.withRegistry {
             val installedPackages = File(INSTALL_TARGET_NEWEST_DIR, JPM.PACKAGES_FOLDER_NAME)
             deleteDirectoryNowAndOnExit(installedPackages)
             val manifestFile = File(File(installedPackages, PUBLISH_TARGET), "package.json")
+
+            File(INSTALL_TARGET_NEWEST_DIR, "jpm_lock.json").delete()
+
+            registerAndAuthenticate()
+
+            // Publish version 0.1.0
+            JPM(PUBLISH_TARGET_DIR, listOf("publish")).runAndAssert()
+
+            // Install newest version (0.1.0)
+            JPM(INSTALL_TARGET_NEWEST_DIR, listOf("install")).runAndAssert()
+
+            // Check installed version
+            assertTrue(manifestFile.exists())
+            val manifest = gson.fromJson<JsonObject>(FileReader(manifestFile))
+            assertEquals("0.1.0", manifest["version"].string)
+
+            // Publish version 2.0.0
+            JPM(PUBLISH_TARGET_VER2_DIR, listOf("publish")).runAndAssert()
+
+            // Delete lock file
+            val lockFile = File(INSTALL_TARGET_NEWEST_DIR, "jpm_lock.json")
+            assertTrue(lockFile.exists())
+            assertTrue(lockFile.delete())
+
+            // Install newest version (2.0.0)
+            JPM(INSTALL_TARGET_NEWEST_DIR, listOf("install")).runAndAssert()
+
+            // Check installed version
+            assertTrue(manifestFile.exists())
+            val newManifest = gson.fromJson<JsonObject>(FileReader(manifestFile))
+            assertEquals("2.0.0", newManifest["version"].string)
+        }
+    }
+
+    @Test
+    fun testThatLockFilesWork() {
+        JPM.withRegistry {
+            val installedPackages = File(INSTALL_TARGET_NEWEST_DIR, JPM.PACKAGES_FOLDER_NAME)
+            deleteDirectoryNowAndOnExit(installedPackages)
+            val manifestFile = File(File(installedPackages, PUBLISH_TARGET), "package.json")
+
+            File(INSTALL_TARGET_NEWEST_DIR, "jpm_lock.json").delete()
 
             registerAndAuthenticate()
 
@@ -105,7 +146,7 @@ class PublishAndInstallTest {
             // Check installed version
             assertTrue(manifestFile.exists())
             val newManifest = gson.fromJson<JsonObject>(FileReader(manifestFile))
-            assertEquals("2.0.0", newManifest["version"].string)
+            assertEquals("0.1.0", newManifest["version"].string)
         }
     }
 

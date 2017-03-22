@@ -12,6 +12,7 @@ include "jpm-downloader" "downloader.iol"
 include "execution" "execution.iol"
 include "pkg" "pkg.iol"
 include "system-java" "system.iol"
+include "lockfiles.iol"
 include "time.iol"
 
 execution { sequential }
@@ -44,7 +45,13 @@ outputPort Downloader {
     Interfaces: IDownloader
 }
 
+outputPort LockFiles {
+    Interfaces: ILockFiles
+}
+
 embedded {
+    Jolie:
+        "lockfiles.ol" in LockFiles
     JoliePackage:
         "jpm-downloader" in Downloader,
         "packages" in Packages {
@@ -179,7 +186,15 @@ define RegistrySetLocation {
  * @output resolvedDependencies: Map<String, SemVer>
  */
 define DependencyTree {
+scope(DependencyTree) {
     PackageRequired;
+
+    install(LockFileFault =>
+        throw(ServiceFault, DependencyTree.LockFileFault)
+    );
+
+    // Open lock file
+    open@LockFiles(global.path)();
 
     // Add all runtime dependencies to the stack
     dependencyStack << package.dependencies;
@@ -205,6 +220,7 @@ define DependencyTree {
         // Lookup package information from the registry
         getPackageInfo@Registry(name)(info);
         if (#info.results == 0) {
+            close@LockFiles(global.path)();
             throw(ServiceFault, {
                 .type = FAULT_BAD_REQUEST,
                 .message = "Unable to resolve package '" + name + "'. " +
@@ -224,6 +240,7 @@ define DependencyTree {
             })(versionSatisfied);
 
             if (!versionSatisfied) {
+                close@LockFiles(global.path)();
                 throw(ServiceFault, {
                     .type = FAULT_BAD_REQUEST,
                     .message = "Unable to resolve package '" + name +
@@ -231,43 +248,66 @@ define DependencyTree {
                 })
             }
         } else {
-            // We need to find the best matching version.
-            // Start by finding all versions of this package
-            pkgInfo -> info.results[j];
-            for (j = 0, j < #info.results, j++) {
-                with (version) {
-                    .major = pkgInfo.major;
-                    .minor = pkgInfo.minor;
-                    .patch = pkgInfo.patch
+            checkLockRequest = global.path;
+            checkLockRequest.dep << currDependency;
+            isLocked@LockFiles(checkLockRequest)(lockInformation);
+            if (lockInformation) {
+                // Always use the lock file, if available
+                with (information) {
+                    .version << lockInformation.locked;
+                    .registryName = registryName;
+                    .registryLocation = Registry.location
                 };
-                allVersions[#allVersions] << version
-            };
 
-            // Find the best match for our version expression
-            sortRequest.versions -> allVersions;
-            sortRequest.satisfying = currDependency.version;
-            sort@SemVer(sortRequest)(sortedVersions);
-            if (#sortedVersions.versions == 0) {
-                throw(ServiceFault, {
-                    .type = FAULT_BAD_REQUEST,
-                    .message = "Unable to resolve package '" + name +
-                        "'. No version matches expression '" +
-                        currDependency.version + "'"
-                })
-            };
+                resolved << information
+            } else {
+                // We need to find the best matching version.
+                // Start by finding all versions of this package
+                pkgInfo -> info.results[j];
+                for (j = 0, j < #info.results, j++) {
+                    with (version) {
+                        .major = pkgInfo.major;
+                        .minor = pkgInfo.minor;
+                        .patch = pkgInfo.patch
+                    };
+                    allVersions[#allVersions] << version
+                };
 
-            // Insert resolved dependency
-            with (information) {
-                .version << sortedVersions.versions
-                    [#sortedVersions.versions - 1];
-                .registryLocation = Registry.location;
-                .registryName = registryName
+                // Find the best match for our version expression
+                sortRequest.versions -> allVersions;
+                sortRequest.satisfying = currDependency.version;
+                sort@SemVer(sortRequest)(sortedVersions);
+                if (#sortedVersions.versions == 0) {
+                    close@LockFiles(global.path)();
+                    throw(ServiceFault, {
+                        .type = FAULT_BAD_REQUEST,
+                        .message = "Unable to resolve package '" + name +
+                            "'. No version matches expression '" +
+                            currDependency.version + "'"
+                    })
+                };
+
+                // Insert resolved dependency
+                with (information) {
+                    .version << sortedVersions.versions
+                        [#sortedVersions.versions - 1];
+                    .registryLocation = Registry.location;
+                    .registryName = registryName
+                };
+                resolved << information;
+
+                // Lock version
+                lockRequest = global.path;
+                with (lockRequest) {
+                    .dep << currDependency;
+                    .resolved << information.version
+                };
+                lock@LockFiles(lockRequest)()
             };
-            resolved << information;
 
             // Insert dependencies of this dependency on the stack
             dependenciesRequest.packageName = name;
-            dependenciesRequest.version << sortedVersions.versions[0];
+            dependenciesRequest.version << resolved.version;
             getDependencies@Registry(dependenciesRequest)(newDependencies);
 
             if (isRuntimeDependency) {
@@ -291,7 +331,10 @@ define DependencyTree {
             dependencyStack << package.interfaceDependencies;
             isRuntimeDependency = false
         }
-    }
+    };
+
+    close@LockFiles(global.path)()
+}
 }
 
 /**
@@ -324,6 +367,13 @@ define EventHandle {
 
 init {
     // Don't handle ServiceFaults just send them back to the invoker
+    /*
+    install(LockFileFault =>
+        println@Console("Got a lock file fault!")();
+        valueToPrettyString@StringUtils(main.LockFileFault)(pretty);
+        println@Console(pretty)()
+    );
+    */
     install(ServiceFault => nullProcess);
     getFileSeparator@File()(FILE_SEP);
     getUserHomeDirectory@System()(HOME);

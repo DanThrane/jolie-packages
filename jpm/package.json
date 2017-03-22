@@ -8,6 +8,7 @@
     "dependencies": [
         { "name": "packages", "version": "*" },
         { "name": "registry", "version": "*" },
-        { "name": "system-java", "version": "*" }
+        { "name": "system-java", "version": "*" },
+        { "name": "jpm-lockfile", "version": "*" }
     ]
 }

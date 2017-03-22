@@ -4,12 +4,14 @@ curr=$PWD
 cd $JPM_CLI_HOME
 joliedev \
     --pkg-folder jpm_packages/ \
-    --main.jpm-cli main.ol \
     --main.jpm jpm_packages/jpm/main.ol \
+    --main.jpm-cli main.ol \
     --main.jpm-lockfile jpm_packages/jpm-lockfile/main.ol \
+    --main.packages jpm_packages/packages/main.ol \
     --main.jpm-downloader jpm_packages/jpm-downloader/main.ol \
     --main.packages jpm_packages/packages/main.ol \
-    -C CALLBACK_LOCATION="socket://localhost:$port" \
-    --deploy cli-prod cli.col \
+    -C CALLBACK_LOCATION=\"socket://localhost:$port\" \
+    --trace \
+    --deploy cli-dev cli.col \
     $curr $@
 cd $curr
