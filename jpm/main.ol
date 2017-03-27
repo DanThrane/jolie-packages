@@ -367,13 +367,6 @@ define EventHandle {
 
 init {
     // Don't handle ServiceFaults just send them back to the invoker
-    /*
-    install(LockFileFault =>
-        println@Console("Got a lock file fault!")();
-        valueToPrettyString@StringUtils(main.LockFileFault)(pretty);
-        println@Console(pretty)()
-    );
-    */
     install(ServiceFault => nullProcess);
     getFileSeparator@File()(FILE_SEP);
     getUserHomeDirectory@System()(HOME);
@@ -610,10 +603,7 @@ main {
 
             scope (installation) {
                 install(DownloaderFault =>
-                    // TODO Rethrow?
-                    println@Console("Failed to download dependency '" +
-                            dependencyName + "'")();
-                    value -> installation.DownloaderFault; DebugPrintValue
+                    throw(ServiceFault, installation.DownloaderFault)
                 );
 
                 with (installRequest) {
@@ -776,3 +766,4 @@ main {
         }
     }]
 }
+

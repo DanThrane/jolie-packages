@@ -358,8 +358,6 @@ main
                             "].location' must be of type string"
                     }
                 } else {
-                    // TODO not sure the constraints put on URIs are currently
-                    // valid
                     validateURI@ValidationUtil(registry.location)
                         (validLocation);
                     if (!validLocation) {

@@ -47,7 +47,6 @@ define DatabaseInit {
             name = ALL_VERSIONS.v[j];
             for (i = 0, i < #INIT_SCRIPTS.(name), i++) {
                 update@Database(INIT_SCRIPTS.(name)[i])(ret)
-                // TODO Validate ret
             }
         };
 

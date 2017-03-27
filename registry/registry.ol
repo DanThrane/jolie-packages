@@ -105,8 +105,6 @@ define GroupSingletonName {
 define GroupCreate {
     scope (s) {
         install(AuthorizationFault =>
-            // TODO For now we just rethrow, but we should probably handle
-            // this a bit better.
             throw(RegistryFault, s.AuthorizationFault)
         );
         // Get current user, create group, add user
@@ -159,7 +157,6 @@ define GroupAddMember {
         );
         GroupRequireSuperPrivileges;
 
-        // TODO Check if member even exists!
         addGroupMembers@Authorization({
             .groupName = groupName,
             .users[0] = member
@@ -210,7 +207,7 @@ define PackageCreate {
     };
 
     // Ensure that our session is valid
-    // TODO Check if use is allowed to create packages
+    // TODO Check if user is allowed to create packages
     token = packageCreateInput.token;
     UserGet;
 
@@ -287,7 +284,6 @@ main {
             .groupName = groupName,
             .users[0] = req.username
         })()
-        // TODO Would be nice if we had default group rights
     }]
 
     [whoami(req)(res) {
@@ -377,7 +373,7 @@ main {
         exists@File(pkgFileName)(pkgExists);
         if (!pkgExists) {
             throw(RegistryFault, {
-                .type = FAULT_BAD_REQUEST,
+                .type = FAULT_INTERNAL,
                 .message = "Internal server error (Could not find .pkg)"
             })
         };
@@ -409,25 +405,20 @@ main {
             .packageName = packageName
         })(packageExists);
 
-        if (!packageExists) {
-            // TODO Should we not validate package before we create it?
-            packageCreateInput.token = req.token;
-            packageCreateInput.name = req.package;
-            PackageCreate
-        };
+        if (packageExists) {
+            // Check user permissions
+            hasAnyOfRights@Authorization({
+                .token = req.token,
+                .check[0].key = "packages." + packageName,
+                .check[0].right = "write"
+            })(hasWriteRights);
 
-        // Check user permissions
-        hasAnyOfRights@Authorization({
-            .token = req.token,
-            .check[0].key = "packages." + packageName,
-            .check[0].right = "write"
-        })(hasWriteRights);
-
-        if (!hasWriteRights) {
-            throw(RegistryFault, {
-                .type = FAULT_BAD_REQUEST,
-                .message = "Unauthorized"
-            })
+            if (!hasWriteRights) {
+                throw(RegistryFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Unauthorized"
+                })
+            }
         };
 
         // Receive file upload and write to temporary location
@@ -467,7 +458,7 @@ main {
             if (report.hasErrors) {
                 throw(RegistryFault, {
                     .type = FAULT_BAD_REQUEST,
-                    .message = "Package has errors."
+                    .message = "Package manifest has errors."
                 })
             };
 
@@ -502,6 +493,16 @@ main {
                 })
             };
 
+            // Validation is done. If we didn't have a package create a new
+            // one. This will fail, if someone else managed to create a package
+            // in the mean time. Following this there is no need for a rights
+            // check.
+            if (!packageExists) {
+                packageCreateInput.token = req.token;
+                packageCreateInput.name = req.package;
+                PackageCreate
+            };
+
             // Insert package into the various databases
             insertNewPackage@RegDB(package)();
 
@@ -534,3 +535,4 @@ main {
         }
     }]
 }
+

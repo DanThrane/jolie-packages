@@ -1,0 +1,14 @@
+profile "conf" configures "nested-external-conf" {
+    A = "foo" {
+        .bar = 42
+    },
+    B = "testing" { .inner = false },
+    C = {
+        .a = {
+            .b = 42 {
+                .c = 137
+            }
+        }
+    }
+}
+

@@ -9,7 +9,7 @@ joliedev \
     --main.jpm-lockfile jpm_packages/jpm-lockfile/main.ol \
     --main.jpm-downloader jpm_packages/jpm-downloader/main.ol \
     --main.packages jpm_packages/packages/main.ol \
-    -C CALLBACK_LOCATION="socket://localhost:$port" \
+    -C CALLBACK_LOCATION=\"socket://localhost:$port\" \
     --deploy cli-prod cli.col \
     $curr $@
 cd $curr

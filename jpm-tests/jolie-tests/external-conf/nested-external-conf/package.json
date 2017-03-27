@@ -1,0 +1,8 @@
+{
+  "private": false,
+  "name": "nested-external-conf",
+  "description": "Test for processing of external configuration.",
+  "version": "0.1.0",
+  "authors": "Dan Sebastian Thrane <dthrane@gmail.com> (github.com/DanThrane)",
+  "main": "main.ol"
+}

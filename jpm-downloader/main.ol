@@ -107,7 +107,6 @@ main {
                 downloadRequest.version.patch = request.patch;
                 if (is_defined(request.token)) {
                     downloadRequest.token = request.token
-                    // TODO Handle not having a token
                 };
 
                 println@Console("Ready to download dependency")();
