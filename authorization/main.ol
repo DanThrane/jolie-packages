@@ -446,6 +446,21 @@ main {
         update@Database(deleteQ)()
     }]
 
+    [getGroupMembers(request)(response) {
+        DatabaseConnect;
+        q = "
+            SELECT user.username
+            FROM
+                user, group, group_member
+            WHERE
+                group.groupName = :groupName AND
+                group.id = group_member.groupId AND
+                user.id = group_member.userId
+        ";
+        query@Database(q)(sqlResponse);
+        response.members -> sqlResponse.row;
+    }]
+
     [getGroup(request)(response) {
         nullProcess // TODO Do we need this?
     }]

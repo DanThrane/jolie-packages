@@ -169,7 +169,11 @@ define GroupAddMember {
  * @input groupName: string
  * @input member: string
  */
-define GroupeRemoveMember {
+define GroupRemoveMember {
+    // TODO This should be done in a single database transaction,
+    // which we are not. We could probably get away with adding a new op for
+    // removing and stripping in a single transaction.
+
     scope (s) {
         install(AuthorizationFault =>
             throw(RegistryFault, s.AuthorizationFault)
@@ -234,6 +238,30 @@ define PackageCreate {
         .change[1].right = "read",
         .change[1].grant = true
     })()
+}
+
+
+/**
+ * @input groupName: string
+ */
+define TeamValidateName {
+    match@StringUtils(groupName { .regex = "[a-zA-Z0-9_-]*" })(isGood);
+
+    if (isGood != -1) {
+        throw(RegistryFault, {
+            .type = FAULT_BAD_REQUEST,
+            .message = "Team names can only contain alpha-numeric " +
+                "characters. No spaces allowed"
+        })
+    }
+}
+
+/**
+ * @input groupName: string
+ * @output groupName: string
+ */
+define TeamCreateNameSpaced {
+    groupName = "teams." + groupName
 }
 
 init {
@@ -318,6 +346,82 @@ main {
     [query(request)(response) {
         // TODO Permissions
         query@RegDB(request)(response)
+    }]
+
+    [createTeam(req)() {
+        token = req.token;
+        groupName = req.teamName;
+
+        TeamValidateName;
+        TeamCreateNameSpaced;
+        GroupCreate
+    }]
+
+    [deleteTeam(req)() {
+        token = req.token;
+        groupName = req.teamName;
+
+        TeamValidateName;
+        TeamCreateNameSpaced;
+        GroupRequireSuperPrivileges
+    }]
+
+    [addTeamMember(req)() {
+        token = req.token;
+        groupName = req.teamName;
+        member = req.username;
+
+        TeamValidateName;
+        TeamCreateNameSpaced;
+
+        GroupAddMember
+    }]
+
+    [removeTeamMember(req)() {
+        token = req.token;
+        groupName = req.teamName;
+        member = req.username;
+
+        TeamValidateName;
+        TeamCreateNameSpaced;
+
+        GroupRemoveMember
+    }]
+
+    [promoteTeamMember(req)() {
+        token = req.token;
+        groupName = req.teamName;
+        currentUser = req.username;
+
+        TeamValidateName;
+        TeamCreateNameSpaced;
+        GroupRequireSuperPrivileges;
+
+        GroupSingletonName;
+        changeGroupRights@Authorization({
+            .groupName = singletonGroupName,
+            .change[0].key = "group." + groupName,
+            .change[0].right = "super",
+            .change[0].grant = true
+        })()
+    }]
+
+    [demoteTeamMember(req)() {
+        token = req.token;
+        groupName = req.teamName;
+        currentUser = req.username;
+
+        TeamValidateName;
+        TeamCreateNameSpaced;
+
+        GroupRequireSuperPrivileges;
+        GroupSingletonName;
+        changeGroupRights@Authorization({
+            .groupName = singletonGroupName,
+            .change[0].key = "group." + groupName,
+            .change[0].right = "super",
+            .change[0].grant = false
+        })()
     }]
 
     [download(req)(res) {

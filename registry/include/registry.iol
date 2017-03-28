@@ -86,6 +86,17 @@ type RegDependencyResponse: void {
     }
 }
 
+type TeamManagementRequest: void {
+    .token: string
+    .teamName: string
+}
+
+type TeamMemberManagementRequest: void {
+    .token: string
+    .teamName: string
+    .username: string
+}
+
 interface IRegistry {
     RequestResponse:
         authenticate(AuthenticationRequest)(AuthenticationResponse)
@@ -105,6 +116,18 @@ interface IRegistry {
             throws RegistryFault(ErrorMessage),
         query(RegistryQueryRequest)(RegistryQueryResponse),
         getDependencies(RegDependencyRequest)(RegDependencyResponse),
-        ping(string)(string)
+        ping(string)(string),
+        createTeam(TeamManagementRequest)(void),
+            throws RegistryFault(ErrorMessage),
+        deleteTeam(TeamManagementRequest)(void),
+            throws RegistryFault(ErrorMessage),
+        addTeamMember(TeamMemberManagementRequest)(void),
+            throws RegistryFault(ErrorMessage),
+        removeTeamMember(TeamMemberManagementRequest)(void),
+            throws RegistryFault(ErrorMessage),
+        promoteTeamMember(TeamMemberManagementRequest)(void),
+            throws RegistryFault(ErrorMessage),
+        demoteTeamMember(TeamMemberManagementRequest)(void)
+            throws RegistryFault(ErrorMessage),
 }
 

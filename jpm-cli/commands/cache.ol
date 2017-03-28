@@ -6,7 +6,6 @@ Usage: jpm cache <SUBCOMMAND>
 
 Available sub-commands:
 -----------------------
-
 clear       Clear the cache
 ";
     trim@StringUtils(global.helpText.("cache"))(global.helpText.("cache"));

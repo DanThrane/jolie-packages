@@ -74,6 +74,14 @@ type RevokeRequest: void {
     .key: string
 }
 
+type GroupMembersRequest: void {
+    .groupName: string
+}
+
+type GroupMembersResponse: void {
+    .members[0, *]: string
+}
+
 interface IAuthorization {
     RequestResponse:
         register(AuthRegistrationRequest)(AccessToken)
@@ -100,5 +108,8 @@ interface IAuthorization {
         hasAllOfRights(RightsCheckRequest)(bool),
         revokeRights(RevokeRequest)(void)
             throws AuthorizationFault(ErrorMessage),
+        getGroupMembers(GroupMembersRequest)(GroupMembersResponse)
+            throws AuthorizationFault(ErrorMessage),
         debug(void)(void)
 }
+

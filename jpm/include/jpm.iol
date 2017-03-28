@@ -56,6 +56,15 @@ type JPMStartRequest: void {
     .isVerbose: bool
 }
 
+type JPMTeamManagementRequest: void {
+    .teamName: string
+}
+
+type JPMTeamMemberManagementRequest: void {
+    .teamName: string
+    .username: string
+}
+
 interface IJPM {
     RequestResponse:
         setContext(string)(void) throws ServiceFault(ErrorMessage),
@@ -78,4 +87,17 @@ interface IJPM {
         clearCache(void)(void),
         ping(string)(void) throws ServiceFault(ErrorMessage),
         pkgInfo(void)(Package) throws ServiceFault(ErrorMessage)
+
+        createTeam(TeamManagementRequest)(void),
+            throws ServiceFault(ErrorMessage),
+        deleteTeam(TeamManagementRequest)(void),
+            throws ServiceFault(ErrorMessage),
+        addTeamMember(TeamMemberManagementRequest)(void),
+            throws ServiceFault(ErrorMessage),
+        removeTeamMember(TeamMemberManagementRequest)(void),
+            throws ServiceFault(ErrorMessage),
+        promoteTeamMember(TeamMemberManagementRequest)(void),
+            throws ServiceFault(ErrorMessage),
+        demoteTeamMember(TeamMemberManagementRequest)(void)
+            throws ServiceFault(ErrorMessage),
 }

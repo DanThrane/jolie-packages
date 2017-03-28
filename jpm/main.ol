@@ -365,6 +365,20 @@ define EventHandle {
     }
 }
 
+/**
+ * @output Registry.location: string
+ * @output token: string
+ */
+define RequireRegistryAndToken {
+    registryName = "public";
+    if (is_defined(req.registry)) registryName = req.registry;
+    RegistrySetLocation;
+    TokensRequire;
+    if (is_defined(tokens.(Registry.location))) {
+        token = tokens.(Registry.location)
+    };
+}
+
 init {
     // Don't handle ServiceFaults just send them back to the invoker
     install(ServiceFault => nullProcess);
@@ -764,6 +778,58 @@ main {
                 })
             }
         }
+    }]
+
+    [addTeamMember(req)() {
+        RequireRegistryAndToken;
+
+        outReq.token = token;
+        outReq.teamName = req.teamName;
+        outReq.username = req.username;
+        addTeamMember@Registry(outReq)()
+    }]
+
+    [removeTeamMember(req)() {
+        RequireRegistryAndToken;
+
+        outReq.token = token;
+        outReq.teamName = req.teamName;
+        outReq.username = req.username;
+        removeTeamMember@Registry(outReq)()
+    }]
+
+    [promoteTeamMember(req)() {
+        RequireRegistryAndToken;
+
+        outReq.token = token;
+        outReq.teamName = req.teamName;
+        outReq.username = req.username;
+        promoteTeamMember@Registry(outReq)()
+    }]
+
+    [demoteTeamMember(req)() {
+        RequireRegistryAndToken;
+
+        outReq.token = token;
+        outReq.teamName = req.teamName;
+        outReq.username = req.username;
+        demoteTeamMember@Registry(outReq)()
+    }]
+
+    [createTeam(req)() {
+        RequireRegistryAndToken;
+
+        outReq.token = token;
+        outReq.teamName = req.teamName;
+        createTeam@Registry(outReq)()
+    }]
+
+    [deleteTeam(req)() {
+        RequireRegistryAndToken;
+
+        outReq.token = token;
+        outReq.teamName = req.teamName;
+        deleteTeam@Registry(outReq)()
     }]
 }
 
