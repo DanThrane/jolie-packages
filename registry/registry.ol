@@ -47,7 +47,10 @@ constants {
     ENABLE_KILL_COMMAND: bool,
     KILL_TOKEN: string,
     FRESH_TOKEN: long,
-    DATA_DIR: string
+    DATA_DIR: string,
+    TRUSTED_PEERS: void {
+        .location[0, *]: string
+    }
 }
 
 /**
@@ -510,12 +513,8 @@ main {
         // Update: There is not. This is a clear security vulnerability.
         // This is present in all (Jolie) sodep and http servers
 
-        //
-        // Automatically create package if it does not already exist.
-        //
-        // This will also assign the correct rights to the user making the
-        // request.
-        //
+        // Check if package exists. Reject if it does, and user doesn't have
+        // rights. If package needs to be created wait for validation.
         packageName = req.package;
         checkIfPackageExists@RegDB({
             .packageName = packageName
@@ -591,6 +590,26 @@ main {
                     .type = FAULT_BAD_REQUEST,
                     .message = "Cannot publish private packages"
                 })
+            };
+
+            // Check if we trust the registries used
+            manifestReg -> package.registries[i];
+            for (i = 0, i < #package.registries, i++) {
+                found = false;
+                for (j = 0, !found && j < #TRUSTED_PEERS.location, j++) {
+                    if (manifestReg.location == TRUSTED_PEERS.location[j]) {
+                        found = true
+                    }
+                };
+
+                if (!found) {
+                    throw(RegistryFault, {
+                        .type = FAULT_BAD_REQUEST,
+                        .message = "Untrusted registry: '" +
+                            manifestReg.name + "' located at '" +
+                            manifestReg.location + "'"
+                    })
+                }
             };
 
             // Check that version is OK. We do not allow downgrading versions

@@ -10,11 +10,11 @@ class TeamTest {
     fun testCreatingTeamAndListingMember() {
         JPM.withRegistry {
             val teamName = "foo"
-            registerAndAuthenticate(name = "MyUser")
+            registerAndAuthenticate(name = "MyUser", withRandomSuffix = false)
 
             val folder = File(".")
             JPM(folder, listOf("team", "create", teamName)).runAndAssert()
-            assertTeamMembers(teamName, 1, "MyUsers")
+            assertTeamMembers(teamName, 1, "MyUser")
         }
     }
 

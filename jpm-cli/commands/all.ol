@@ -13,6 +13,7 @@ include "ping.ol"
 include "test.ol"
 include "validate.ol"
 include "team.ol"
+include "upgrade.ol"
 // help command must be last
 include "help.ol"
 
@@ -34,6 +35,7 @@ define HandleCommand {
     HandlePingCommand;
     HandleValidateCommand;
     HandleTeamCommand;
+    HandleUpgradeCommand;
     HandleHelpCommand;
     // end user defined commands
 

@@ -9,6 +9,6 @@
         { "name": "packages", "version": "*" },
         { "name": "registry", "version": "*" },
         { "name": "system-java", "version": "*" },
-        { "name": "jpm-lockfile", "version": "*" }
+        { "name": "jpm-downloader", "version": "*" }
     ]
 }

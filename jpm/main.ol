@@ -23,8 +23,7 @@ constants {
     REGISTRY_PUBLIC: string
 }
 
-inputPort JPM {
-    Location: "local"
+ext inputPort JPM {
     Interfaces: IJPM
 }
 
@@ -184,6 +183,7 @@ define RegistrySetLocation {
 }
 
 /**
+ * @input ignoreLockfile?: bool
  * @output resolvedDependencies: Map<String, SemVer>
  */
 define DependencyTree {
@@ -252,7 +252,7 @@ scope(DependencyTree) {
             checkLockRequest = global.path;
             checkLockRequest.dep << currDependency;
             isLocked@LockFiles(checkLockRequest)(lockInformation);
-            if (lockInformation) {
+            if (lockInformation && !ignoreLockfile) {
                 // Always use the lock file, if available
                 with (information) {
                     .version << lockInformation.locked;
@@ -691,6 +691,11 @@ main {
 
         EventHandle.in.name = "post-install";
         EventHandle
+    }]
+
+    [upgrade()() {
+        ignoreLockfile = true;
+        DependencyTree
     }]
 
     [publish(req)(res) {

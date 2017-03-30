@@ -1,0 +1,8 @@
+profile "jpm-dev-daemon" configures "jpm" {
+    inputPort JPM {
+        Location: "socket://localhost:23000"
+        Protocol: sodep
+    },
+    REGISTRY_PUBLIC = "socket://localhost:12345"
+}
+

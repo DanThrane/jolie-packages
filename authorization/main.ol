@@ -431,7 +431,6 @@ main {
     }]
 
     [removeGroupMembers(request)(response) {
-        // TODO Never tested
         DatabaseConnect;
 
         groupName = request.groupName;

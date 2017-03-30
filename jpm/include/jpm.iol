@@ -108,5 +108,7 @@ interface IJPM {
         demoteTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
         listTeamMembers(JPMTeamManagementRequest)(GroupMembersResponse)
+            throws ServiceFault(ErrorMessage),
+        upgrade(void)(void)
             throws ServiceFault(ErrorMessage)
 }

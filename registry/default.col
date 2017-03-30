@@ -1,5 +1,5 @@
 profile "default" configures "registry" {
-    DATABSE_USERNAME = "",
+    DATABASE_USERNAME = "",
     DATABASE_PASSWORD = "",
     DATABASE_HOST = "",
     DATABASE_BASE = "/home/dan/registry.db",
@@ -7,5 +7,10 @@ profile "default" configures "registry" {
     ENABLE_KILL_COMMAND = false,
     KILL_TOKEN = "",
     FRESH_TOKEN = 60000L,
-    DATA_DIR = "data"
+    DATA_DIR = "data",
+    TRUSTED_PEERS = {
+        // No trusted peers by default
+        .location[0] = ""
+    }
 }
+
