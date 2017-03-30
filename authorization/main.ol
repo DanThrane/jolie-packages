@@ -297,11 +297,26 @@ main {
     }]
 
     [createGroup(request)(response) {
-        groupName = request.groupName;
-        GroupRequireNonAuth;
+        scope (s) {
+            install(SQLException =>
+                if (s.SQLException.errorCode == 19) {
+                    throw(AuthorizationFault, {
+                        .type = FAULT_BAD_REQUEST,
+                        .message = "Group already exists!"
+                    })
+                } else {
+                    throw(AuthorizationFault, {
+                        .type = FAULT_INTERNAL,
+                        .message = "Internal server error"
+                    })
+                }
+            );
+            groupName = request.groupName;
+            GroupRequireNonAuth;
 
-        GroupCreateWithDefaultRights.in.groupName = groupName;
-        GroupCreateWithDefaultRights
+            GroupCreateWithDefaultRights.in.groupName = groupName;
+            GroupCreateWithDefaultRights
+        }
     }]
 
     [deleteGroup(request)(response) {
@@ -350,7 +365,7 @@ main {
                 deleteQ = "
                     DELETE FROM group_rights
                     WHERE
-                        group_id = :groupId AND
+                        groupId = :groupId AND
                         resource = :resource AND
                         value = :value
                 ";
@@ -432,16 +447,18 @@ main {
             );
         ";
 
-        for (i = 0, i <= #request.users, i++) {
-            if (i > 0) userParamsList = ", ";
-            usersParamsList += ":user" + i;
-            deleteQ.(":user" + i) = request.users[i]
+        for (i = 0, i < #request.users, i++) {
+            if (i > 0) userParamsList += ", ";
+            userParamsList += ":user" + i;
+            deleteQ.("user" + i) = request.users[i];
+            println@Console(request.users[i])()
         };
 
         replaceAll@StringUtils(deleteQ {
             .regex = "%USER_LIST%",
-            .replacement = userParamList
-        })(deleteQ);
+            .replacement = userParamsList
+        })(prepared);
+        deleteQ = prepared;
 
         update@Database(deleteQ)()
     }]
@@ -449,16 +466,20 @@ main {
     [getGroupMembers(request)(response) {
         DatabaseConnect;
         q = "
-            SELECT user.username
+            SELECT
+              user.username
             FROM
-                user, group, group_member
+              'group'
+                INNER JOIN group_member ON 'group'.id = group_member.groupId
+                INNER JOIN user ON group_member.userId = user.id
             WHERE
-                group.groupName = :groupName AND
-                group.id = group_member.groupId AND
-                user.id = group_member.userId
+              'group'.groupName = :groupName;
         ";
+        q.groupName = request.groupName;
         query@Database(q)(sqlResponse);
-        response.members -> sqlResponse.row;
+        for (i = 0, i < #sqlResponse.row, i++) {
+            response.members[#response.members] = sqlResponse.row[i].username
+        }
     }]
 
     [getGroup(request)(response) {

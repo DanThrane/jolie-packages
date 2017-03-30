@@ -104,7 +104,7 @@ class JPM(
             message = stdOut.takeLast(stdOut.size - errorLine).joinToString("\n") { it }
         }
 
-        val exceptionLine = stdErr.indexOfFirst { it.startsWith("SEVERE:") && it.contains("jpm/main.ol") }
+        val exceptionLine = stdErr.indexOfFirst { it.startsWith("SEVERE:") && it.contains(".ol") }
 
         if (exceptionLine != -1) {
             return JPMResult(stdOut, stdErr, -1, "JPM threw an exception")

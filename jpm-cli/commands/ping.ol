@@ -26,7 +26,7 @@ define HandlePingCommand {
         } else {
             registry = "public"
         };
-        ping@JPM(registry)();
+        ping@JPM({ .registry = registry })();
         println@Console("OK")()
     }
 }

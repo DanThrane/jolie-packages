@@ -14,3 +14,13 @@ fun registerAndAuthenticate(name: String = "user", withRandomSuffix: Boolean = t
     assert(result.exitCode == 0)
     return User(username, password)
 }
+
+fun authenticate(name: String = "user") {
+    JPM(File("."), listOf("login", name, "1234")).runAndAssert()
+}
+
+fun reauthenticate(name: String = "user") {
+    JPM(File("."), listOf("logout")).runAndAssert()
+    authenticate(name)
+}
+

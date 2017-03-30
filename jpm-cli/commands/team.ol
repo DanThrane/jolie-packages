@@ -10,6 +10,7 @@ Available sub-commands:
 -----------------------
 create <TEAM>           Creates a new team
 delete <TEAM>           Deletes a team
+list <TEAM>             Lists members of a team
 add <TEAM> <USER>       Adds <USER> to <TEAM>
 remove <TEAM> <USER>    Removes <USER> from <TEAM>
 promote <TEAM> <USER>   Promotes <USER> to admin in <TEAM>
@@ -32,6 +33,16 @@ define HandleTeamCommand {
     if (command == "team") {
         handled = true;
 
+        with (consumeRequest) {
+            .parsed << command;
+            .options.registry.count = 1
+        };
+        consumeRequest.parsed = null;
+        consumeOptions@ArgumentParser(consumeRequest)(command);
+
+        registry -> command.options.registry;
+        if (!is_defined(registry)) registry = "public";
+
         subCommand = command.args[0];
         if (#command.args <= 1) {
             throw(CLIFault, {
@@ -39,25 +50,53 @@ define HandleTeamCommand {
                 .message = "Usage: jpm team <SUB-COMMAND> <TEAM> [<ARGS>]"
             })
         };
+
         team = command.args[1];
         user = command.args[2];
 
         if (subCommand == "create") {
-            createTeam@JPM({ .teamName = team })()
+            createTeam@JPM({ .teamName = team, .registry = registry })()
         } else if (subCommand == "delete") {
-            deleteTeam@JPM({ .teamName = team })()
+            deleteTeam@JPM({ .teamName = team, .registry = registry })()
         } else if (subCommand == "add") {
             RequireUser;
-            addTeamMeber@JPM({ .teamName = team, .username = user })()
+            addTeamMember@JPM({
+                .teamName = team,
+                .username = user,
+                .registry = registry
+            })()
         } else if (subCommand == "remove") {
             RequireUser;
-            removeTeamMember@JPM({ .teamName = team, .username = user })()
+            removeTeamMember@JPM({
+                .teamName = team,
+                .username = user,
+                .registry = registry
+            })()
         } else if (subCommand == "promote") {
             RequireUser;
-            promoteTeamMember@JPM({ .teamName = team, .username = user })()
+            promoteTeamMember@JPM({
+                .teamName = team,
+                .username = user,
+                .registry = registry
+            })()
         } else if (subCommand == "demote") {
             RequireUser;
-            demoteTeamMember@JPM({ .teamName = team, .username = user })()
+            demoteTeamMember@JPM({
+                .teamName = team,
+                .username = user,
+                .registry = registry
+            })()
+        } else if (subCommand == "list") {
+            listTeamMembers@JPM({
+                .teamName = team,
+                .registry = registry
+            })(out);
+
+            println@Console("Found " + #out.members +
+                    " members in " + team + ":")();
+            for (i = 0, i < #out.members, i++) {
+                println@Console("  - " + out.members[i])()
+            }
         } else {
             throw(CLIFault, {
                 .type = FAULT_BAD_REQUEST,

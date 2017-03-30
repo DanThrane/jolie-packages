@@ -140,7 +140,7 @@ define GroupRequireSuperPrivileges {
     if (!hasSuperPrivileges) {
         throw(RegistryFault, {
             .type = FAULT_BAD_REQUEST,
-            .message = "Not authorized to add members"
+            .message = "Not authorized to manage group"
         })
     }
 }
@@ -247,7 +247,7 @@ define PackageCreate {
 define TeamValidateName {
     match@StringUtils(groupName { .regex = "[a-zA-Z0-9_-]*" })(isGood);
 
-    if (isGood != -1) {
+    if (isGood == -1) {
         throw(RegistryFault, {
             .type = FAULT_BAD_REQUEST,
             .message = "Team names can only contain alpha-numeric " +
@@ -364,6 +364,8 @@ main {
         TeamValidateName;
         TeamCreateNameSpaced;
         GroupRequireSuperPrivileges
+
+        // TODO Delete team
     }]
 
     [addTeamMember(req)() {
@@ -422,6 +424,16 @@ main {
             .change[0].right = "super",
             .change[0].grant = false
         })()
+    }]
+
+    [listTeamMembers(req)(resp) {
+        token = req.token;
+        groupName = req.teamName;
+
+        TeamValidateName;
+        TeamCreateNameSpaced;
+        GroupRequireSuperPrivileges;
+        getGroupMembers@Authorization({ .groupName = groupName })(resp)
     }]
 
     [download(req)(res) {

@@ -19,6 +19,7 @@ execution { sequential }
 
 constants {
     FOLDER_PACKAGES = "jpm_packages",
+    PING_MESSAGE = "ping",
     REGISTRY_PUBLIC: string
 }
 
@@ -366,17 +367,60 @@ define EventHandle {
 }
 
 /**
+ * @input req.registry: string
+ * @output Registry.location: string
+ */
+define RequireRegistry {
+    registryName = "public";
+    if (is_defined(req.registry)) registryName = req.registry;
+    if (registryName != "public") {
+        PackageRequired
+    };
+    RegistrySetLocation;
+
+    install(IOException =>
+        throw(ServiceFault, {
+            .type = FAULT_INTERNAL,
+            .message = "Unable to contact registry"
+        })
+    );
+
+    install(RegistryFault => throw(ServiceFault, s.RegistryFault))
+}
+
+/**
  * @output Registry.location: string
  * @output token: string
  */
 define RequireRegistryAndToken {
-    registryName = "public";
-    if (is_defined(req.registry)) registryName = req.registry;
-    RegistrySetLocation;
+    RequireRegistry;
     TokensRequire;
     if (is_defined(tokens.(Registry.location))) {
         token = tokens.(Registry.location)
-    };
+    }
+}
+
+/**
+ * @input req
+ * @output Registry.location: string
+ * @output token: string
+ * @output outReq: TeamManagementRequest
+ */
+define RequireTeamManagement {
+    RequireRegistryAndToken;
+    outReq.token = token;
+    outReq.teamName = req.teamName
+}
+
+/**
+ * @input req
+ * @output Registry.location: string
+ * @output token: string
+ * @output outReq: TeamMemberManagementRequest
+ */
+define RequireTeamMemberManagement {
+    RequireTeamManagement;
+    outReq.username = req.username
 }
 
 init {
@@ -396,6 +440,7 @@ init {
 }
 
 main {
+    // JPM state
     [setCallback(loc)() {
         global.callback = loc
     }]
@@ -409,6 +454,11 @@ main {
             })
         };
         global.path = path
+    }]
+
+    // Local operations working on packages
+    [pkgInfo()(package) {
+        PackageRequired
     }]
 
     [query(request)(response) {
@@ -507,10 +557,6 @@ main {
         })()
     }]
 
-    [pkgInfo()(package) {
-        PackageRequired
-    }]
-
     [start(request)() {
         PackageRequired;
         nextArgument -> command[#command];
@@ -533,6 +579,10 @@ main {
                 nextArgument = "n"
             };
             nextArgument = "" + request.debug.port
+        };
+
+        if (request.trace) {
+            nextArgument = "--trace"
         };
 
         isDeploying = is_defined(request.deployment);
@@ -643,74 +693,6 @@ main {
         EventHandle
     }]
 
-    [authenticate(req)(token) {
-        scope (s) {
-            install(RegistryFault => throw(ServiceFault, s.RegistryFault));
-
-            registryName = "public";
-            if (is_defined(req.registry)) {
-                registryName = req.registry
-            };
-            RegistrySetLocation;
-            authenticate@Registry({
-                .username = req.username,
-                .password = req.password
-            })(token);
-
-            tokens.(Registry.location) = token;
-            TokensSave
-        }
-    }]
-
-    [register(req)(token) {
-        scope (s) {
-            install(RegistryFault => throw(ServiceFault, s.RegistryFault));
-
-            registryName = "public";
-            if (is_defined(req.registry)) registryName = req.registry;
-            RegistrySetLocation;
-            register@Registry({
-                .username = req.username,
-                .password = req.password
-            })(token);
-
-            tokens.(Registry.location) = token;
-            TokensSave
-        }
-    }]
-
-    [whoami(req)(res) {
-        scope (s) {
-            install(RegistryFault => throw(ServiceFault, s.RegistryFault));
-            registryName = "public";
-            if (is_defined(req.registry)) registryName = req.registry;
-            RegistrySetLocation;
-
-            TokensRequire;
-            whoami@Registry({
-                .token = tokens.(Registry.location)
-            })(res)
-        }
-    }]
-
-    [logout(req)(res) {
-        scope (s) {
-            install(RegistryFault => throw(ServiceFault, s.RegistryFault));
-
-            registryName = "public";
-            if (is_defined(req.registry)) registryName = req.registry;
-            RegistrySetLocation;
-
-            TokensRequire;
-            logout@Registry({
-                .token = tokens.(Registry.location)
-            })();
-
-            undef(tokens.(Registry.location));
-            TokensSave
-        }
-    }]
-
     [publish(req)(res) {
         scope (s) {
             install(RegistryFault =>
@@ -755,23 +737,60 @@ main {
         }
     }]
 
+    // Cache
     [clearCache()() { clearCache@Downloader()() }]
 
-    [ping(registryName)() {
-        if (registryName != "public") {
-            PackageRequired
-        };
+    // Authentication
+    [authenticate(req)(token) {
         scope (s) {
-            install(IOException =>
-                throw(ServiceFault, {
-                    .type = FAULT_INTERNAL,
-                    .message = "Unable to contact registry"
-                })
-            );
-            RegistrySetLocation;
-            pingMessage = "ping";
-            ping@Registry(pingMessage)(output);
-            if (pingMessage != output) {
+            RequireRegistry;
+
+            authenticate@Registry({
+                .username = req.username,
+                .password = req.password
+            })(token);
+
+            tokens.(Registry.location) = token;
+            TokensSave
+        }
+    }]
+
+    [register(req)(token) {
+        scope (s) {
+            RequireRegistry;
+
+            register@Registry({
+                .username = req.username,
+                .password = req.password
+            })(token);
+
+            tokens.(Registry.location) = token;
+            TokensSave
+        }
+    }]
+
+    [whoami(req)(res) {
+        scope (s) {
+            RequireRegistryAndToken;
+            whoami@Registry({ .token = token })(res)
+        }
+    }]
+
+    [logout(req)(res) {
+        scope (s) {
+            RequireRegistryAndToken;
+            logout@Registry({ .token = token })();
+            undef(tokens.(Registry.location));
+            TokensSave
+        }
+    }]
+
+    // Debugging
+    [ping(req)() {
+        scope(s) {
+            RequireRegistry;
+            ping@Registry(PING_MESSAGE)(output);
+            if (PING_MESSAGE != output) {
                 throw(ServiceFault, {
                     .type = FAULT_INTERNAL,
                     .message = "Unable to contact registry"
@@ -780,56 +799,54 @@ main {
         }
     }]
 
+    // Team management
     [addTeamMember(req)() {
-        RequireRegistryAndToken;
-
-        outReq.token = token;
-        outReq.teamName = req.teamName;
-        outReq.username = req.username;
-        addTeamMember@Registry(outReq)()
+        scope(s) {
+            RequireTeamMemberManagement;
+            addTeamMember@Registry(outReq)()
+        }
     }]
 
     [removeTeamMember(req)() {
-        RequireRegistryAndToken;
-
-        outReq.token = token;
-        outReq.teamName = req.teamName;
-        outReq.username = req.username;
-        removeTeamMember@Registry(outReq)()
+        scope (s) {
+            RequireTeamMemberManagement;
+            removeTeamMember@Registry(outReq)()
+        }
     }]
 
     [promoteTeamMember(req)() {
-        RequireRegistryAndToken;
-
-        outReq.token = token;
-        outReq.teamName = req.teamName;
-        outReq.username = req.username;
-        promoteTeamMember@Registry(outReq)()
+        scope (s) {
+            RequireTeamMemberManagement;
+            promoteTeamMember@Registry(outReq)()
+        }
     }]
 
     [demoteTeamMember(req)() {
-        RequireRegistryAndToken;
-
-        outReq.token = token;
-        outReq.teamName = req.teamName;
-        outReq.username = req.username;
-        demoteTeamMember@Registry(outReq)()
+        scope (s) {
+            RequireTeamMemberManagement;
+            demoteTeamMember@Registry(outReq)()
+        }
     }]
 
     [createTeam(req)() {
-        RequireRegistryAndToken;
-
-        outReq.token = token;
-        outReq.teamName = req.teamName;
-        createTeam@Registry(outReq)()
+        scope (s) {
+            RequireTeamManagement;
+            createTeam@Registry(outReq)()
+        }
     }]
 
     [deleteTeam(req)() {
-        RequireRegistryAndToken;
+        scope (s) {
+            RequireTeamManagement;
+            deleteTeam@Registry(outReq)()
+        }
+    }]
 
-        outReq.token = token;
-        outReq.teamName = req.teamName;
-        deleteTeam@Registry(outReq)()
+    [listTeamMembers(req)(res) {
+        scope (s) {
+            RequireTeamManagement;
+            listTeamMembers@Registry(outReq)(res)
+        }
     }]
 }
 

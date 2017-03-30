@@ -2,6 +2,7 @@ include "packages" "packages.iol"
 include "semver" "semver.iol"
 include "jpm-utils" "utils.iol"
 include "registry-database" "db.iol"
+include "authorization" "authorization.iol"
 
 // Utility types
 type ServiceMessage: bool {
@@ -117,17 +118,19 @@ interface IRegistry {
         query(RegistryQueryRequest)(RegistryQueryResponse),
         getDependencies(RegDependencyRequest)(RegDependencyResponse),
         ping(string)(string),
-        createTeam(TeamManagementRequest)(void),
+        createTeam(TeamManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
-        deleteTeam(TeamManagementRequest)(void),
+        deleteTeam(TeamManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
-        addTeamMember(TeamMemberManagementRequest)(void),
+        addTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
-        removeTeamMember(TeamMemberManagementRequest)(void),
+        removeTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
-        promoteTeamMember(TeamMemberManagementRequest)(void),
+        promoteTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
         demoteTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
+        listTeamMembers(TeamManagementRequest)(GroupMembersResponse)
+            throws RegistryFault(ErrorMessage)
 }
 

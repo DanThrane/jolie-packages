@@ -21,6 +21,10 @@ type JPMWhoamiRequest: void {
     .registry?: string
 }
 
+type JPMPingRequest: void {
+    .registry?: string
+}
+
 type InitializationRequest: void {
     .name: string
     .description: string
@@ -54,15 +58,18 @@ type JPMStartRequest: void {
         .port: int
     }
     .isVerbose: bool
+    .trace: bool
 }
 
 type JPMTeamManagementRequest: void {
     .teamName: string
+    .registry: string
 }
 
 type JPMTeamMemberManagementRequest: void {
     .teamName: string
     .username: string
+    .registry: string
 }
 
 interface IJPM {
@@ -85,19 +92,21 @@ interface IJPM {
             throws ServiceFault(ErrorMessage),
         publish(JPMPublishRequest)(void) throws ServiceFault(ErrorMessage),
         clearCache(void)(void),
-        ping(string)(void) throws ServiceFault(ErrorMessage),
-        pkgInfo(void)(Package) throws ServiceFault(ErrorMessage)
+        ping(JPMPingRequest)(void) throws ServiceFault(ErrorMessage),
+        pkgInfo(void)(Package) throws ServiceFault(ErrorMessage),
 
-        createTeam(TeamManagementRequest)(void),
+        createTeam(JPMTeamManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
-        deleteTeam(TeamManagementRequest)(void),
+        deleteTeam(JPMTeamManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
-        addTeamMember(TeamMemberManagementRequest)(void),
+        addTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
-        removeTeamMember(TeamMemberManagementRequest)(void),
+        removeTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
-        promoteTeamMember(TeamMemberManagementRequest)(void),
+        promoteTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
-        demoteTeamMember(TeamMemberManagementRequest)(void)
+        demoteTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
+        listTeamMembers(JPMTeamManagementRequest)(GroupMembersResponse)
+            throws ServiceFault(ErrorMessage)
 }
