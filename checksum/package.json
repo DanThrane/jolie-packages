@@ -1,0 +1,8 @@
+{
+  "private": false,
+  "name": "checksum",
+  "description": "Various checksum algorithms",
+  "version": "0.1.0",
+  "license": "MIT",
+  "authors": "Dan Sebastian Thrane <dthrane@gmail.com> (github.com/DanThrane)"
+}

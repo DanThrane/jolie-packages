@@ -52,6 +52,14 @@
         {
             "name": "registry-database",
             "version": "0.1.0"
+        },
+        {
+            "name": "checksum",
+            "version": "0.1.0"
+        },
+        {
+            "name": "checksum",
+            "version": "0.1.0"
         }
     ]
 }

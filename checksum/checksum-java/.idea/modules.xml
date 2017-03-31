@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/checksum.iml" filepath="$PROJECT_DIR$/.idea/modules/checksum.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/checksum_main.iml" filepath="$PROJECT_DIR$/.idea/modules/checksum_main.iml" group="checksum" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/checksum_test.iml" filepath="$PROJECT_DIR$/.idea/modules/checksum_test.iml" group="checksum" />
+    </modules>
+  </component>
+</project>

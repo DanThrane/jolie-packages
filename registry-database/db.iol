@@ -9,6 +9,7 @@ type PackageInformation: void {
     .label?: string
     .description?: string
     .license: LicenseIdentifier
+    .checksum: string
 }
 
 type RegDBQueryRequest: void {
@@ -30,6 +31,10 @@ type RegDBPkgInfoRequest: void {
 
 type RegDBPkgInfoResult: void {
     .results[0, *]: PackageInformation
+}
+
+type RegDBPkgInfoSpecific: void {
+    .result: PackageInformation
 }
 
 type RegDBPkgListResult: void {
@@ -66,18 +71,50 @@ type RegDBGetDependenciesResult: void {
     }
 }
 
+type PackageInsertionRequest: void {
+    .package: Package
+    .checksum: string
+}
+
+type RegDBPkgInfoSpecificRequest: void {
+    .packageName: string
+    .version: SemVer
+}
+
 interface IRegistryDatabase {
     RequestResponse:
-        query(RegDBQueryRequest)(RegDBQueryResult),
-        checkIfPackageExists(RegDBCheckIfPkgExistsRequest)(bool),
-        getInformationAboutPackage(RegDBPkgInfoRequest)(RegDBPkgInfoResult),
+        query
+            (RegDBQueryRequest)
+            (RegDBQueryResult),
+
+        checkIfPackageExists
+            (RegDBCheckIfPkgExistsRequest)
+            (bool),
+
+        getInformationAboutPackage
+            (RegDBPkgInfoRequest)
+            (RegDBPkgInfoResult),
+
+        getInformationAboutPackageOfVersion
+            (RegDBPkgInfoSpecificRequest)
+            (RegDBPkgInfoSpecific)
+            throws RegDBFault(ErrorMessage),
+
         getPackageList(void)(RegDBPkgListResult),
-        comparePackageWithNewestVersion(RegDBCompareWithNewestRequest)
+
+        comparePackageWithNewestVersion
+            (RegDBCompareWithNewestRequest)
             (RegDBCompareWithNewestResult),
-        insertNewPackage(Package)(void) throws RegDBFault(ErrorMessage),
-        createPackage(string)(void) throws RegDBFault(ErrorMessage),
+
+        insertNewPackage(PackageInsertionRequest)(void)
+            throws RegDBFault(ErrorMessage),
+
+        createPackage(string)(void)
+            throws RegDBFault(ErrorMessage),
+
         getDependencies
             (RegDBGetDependenciesRequest)
-            (RegDBGetDependenciesResult) throws RegDBFault(ErrorMessage)
+            (RegDBGetDependenciesResult)
+            throws RegDBFault(ErrorMessage)
 }
 

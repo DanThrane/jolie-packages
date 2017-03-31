@@ -2,7 +2,8 @@ constants {
     // Idea is we could use for some kind of migration system
     ALL_VERSIONS = {
         .v[0] = "version0",
-        .v[1] = "version1"
+        .v[1] = "version1",
+        .v[2] = "version2"
     },
     INIT_SCRIPTS = {
         .version0[0] = "
@@ -66,6 +67,12 @@ constants {
         ",
         .version1[5] = "
             ALTER TABLE package_dependency2 RENAME TO package_dependency
+        ",
+        // add checksum field to packages
+        .version2[0] = "
+            ALTER TABLE package_versions
+            ADD COLUMN checksum TEXT;
         "
     }
 }
+

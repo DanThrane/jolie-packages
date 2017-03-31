@@ -4,11 +4,6 @@ include "jpm-utils" "utils.iol"
 include "registry-database" "db.iol"
 include "authorization" "authorization.iol"
 
-// Utility types
-type ServiceMessage: bool {
-    .message: string
-}
-
 // Request response types
 
 type AuthenticationRequest: void {
@@ -42,8 +37,6 @@ type CreatePackageRequest: void {
     .token: string
     .name: string
 }
-
-type CreatePackageResponse: ServiceMessage
 
 type GetPackageRequest: string
 type GetPackageResponse: void {
@@ -98,6 +91,12 @@ type TeamMemberManagementRequest: void {
     .username: string
 }
 
+type ChecksumRequest: void {
+    .packageIdentifier: string
+    .version: SemVer
+    .token?: string
+}
+
 interface IRegistry {
     RequestResponse:
         authenticate(AuthenticationRequest)(AuthenticationResponse)
@@ -131,6 +130,8 @@ interface IRegistry {
         demoteTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
         listTeamMembers(TeamManagementRequest)(GroupMembersResponse)
+            throws RegistryFault(ErrorMessage),
+        checksum(ChecksumRequest)(string)
             throws RegistryFault(ErrorMessage)
 }
 

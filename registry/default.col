@@ -11,6 +11,7 @@ profile "default" configures "registry" {
     TRUSTED_PEERS = {
         // No trusted peers by default
         .location[0] = ""
-    }
+    },
+    CHECKSUM_ALGORITHM = "sha-256"
 }
 

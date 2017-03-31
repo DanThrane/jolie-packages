@@ -50,7 +50,8 @@ constants {
     DATA_DIR: string,
     TRUSTED_PEERS: void {
         .location[0, *]: string
-    }
+    },
+    CHECKSUM_ALGORITHM: string
 }
 
 /**
@@ -639,7 +640,12 @@ main {
             };
 
             // Insert package into the various databases
-            insertNewPackage@RegDB(package)();
+            insertRequest.package << package;
+            directoryDigest@Checksum({
+                .algorithm = CHECKSUM_ALGORITHM,
+                .file = temporaryFileName
+            })(insertRequest.checksum);
+            insertNewPackage@RegDB(insertRequest)();
 
             baseFolder = FOLDER_PACKAGES + FILE_SEP + package.name;
             mkdir@File(baseFolder)();
@@ -660,6 +666,10 @@ main {
             depRequest.package.version << request.version;
             getDependencies@RegDB(depRequest)(response)
         }
+    }]
+
+    [checksum(req)(res) {
+        getInformationAboutPackage@RegDB({ .packageName = packageName })(res)
     }]
 
     [ping(echo)(echo) { nullProcess }]

@@ -162,6 +162,33 @@ main {
         }
     }]
 
+    [getInformationAboutPackageOfVersion(request)(result) {
+        DatabaseConnect;
+        packageQuery = "
+            SELECT
+              package.packageName AS packageName,
+              major,
+              minor,
+              patch,
+              label,
+              description,
+              license,
+              checksum
+            FROM
+              package,
+              package_versions
+            WHERE
+              package.packageName = :packageName AND
+              package.packageName = package_versions.packageName AND
+              major = :major AND
+              minor = :minor AND
+              patch = :patch
+        ";
+        packageQuery.packageName = request.packageName;
+        query@Database(packageQuery)(sqlResponse);
+        result.results -> sqlResponse.row
+    }]
+
     [getInformationAboutPackage(request)(result) {
         DatabaseConnect;
         packageQuery = "
@@ -172,7 +199,8 @@ main {
               patch,
               label,
               description,
-              license
+              license,
+              checksum
             FROM
               package,
               package_versions
@@ -251,7 +279,8 @@ main {
         }
     }]
 
-    [insertNewPackage(package)() {
+    [insertNewPackage(request)() {
+        package -> request.package;
         DatabaseConnect;
         scope (insertion) {
             install (SQLException =>
@@ -265,10 +294,10 @@ main {
             packageInsertion = "
                 INSERT INTO package_versions
                     (packageName, major, minor, patch, label, description,
-                     license)
+                     license, checksum)
                 VALUES
                     (:packageName, :major, :minor, :patch, :label, :description,
-                     :license);
+                     :license, :checksum);
             ";
             packageInsertion.packageName = package.name;
             packageInsertion.major = package.version.major;
@@ -277,6 +306,7 @@ main {
             packageInsertion.label = package.version.label;
             packageInsertion.description = package.description;
             packageInsertion.license = package.license;
+            packageInsertion.checksum = request.checksum;
             statements[#statements] << packageInsertion;
 
             // Insert dependencies
