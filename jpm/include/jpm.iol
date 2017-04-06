@@ -1,19 +1,19 @@
 include "jpm-utils" "utils.iol"
 include "registry" "registry.iol"
 
-type JPMAuthenticationRequest: void {
+type JPMAuthenticateRequest: void {
     .username: string
     .password: string
     .registry?: string
 }
 
-type JPMRegistrationRequest: void {
+type JPMRegisterRequest: void {
     .username: string
     .password: string
     .registry?: string
 }
 
-type LogoutRequest: void {
+type JPMLogoutRequest: void {
     .registry?: string
 }
 
@@ -25,7 +25,7 @@ type JPMPingRequest: void {
     .registry?: string
 }
 
-type InitializationRequest: void {
+type JPMInitializePackageRequest: void {
     .name: string
     .description: string
     .authors[0, *]: string
@@ -74,41 +74,67 @@ type JPMTeamMemberManagementRequest: void {
 
 interface IJPM {
     RequestResponse:
-        setContext(string)(void) throws ServiceFault(ErrorMessage),
+        setContext(string)(void)
+            throws ServiceFault(ErrorMessage),
+
         setCallback(string)(void),
-        authenticate(JPMAuthenticationRequest)(string)
+
+        authenticate(JPMAuthenticateRequest)(string)
             throws ServiceFault(ErrorMessage),
-        register(JPMRegistrationRequest)(string)
+
+        register(JPMRegisterRequest)(string)
             throws ServiceFault(ErrorMessage),
-        logout(LogoutRequest)(void),
+
+        logout(JPMLogoutRequest)(void),
+
         whoami(JPMWhoamiRequest)(string)
             throws ServiceFault(ErrorMessage),
-        initializePackage(InitializationRequest)(void)
+
+        initializePackage(JPMInitializePackageRequest)(void)
             throws ServiceFault(ErrorMessage),
-        start(JPMStartRequest)(void) throws ServiceFault(ErrorMessage),
+
+        start(JPMStartRequest)(void)
+            throws ServiceFault(ErrorMessage),
+
         installDependencies(void)(void)
             throws ServiceFault(ErrorMessage),
+
         query(JPMQueryRequest)(JPMQueryResponse)
             throws ServiceFault(ErrorMessage),
-        publish(JPMPublishRequest)(void) throws ServiceFault(ErrorMessage),
+
+        publish(JPMPublishRequest)(void)
+            throws ServiceFault(ErrorMessage),
+
         clearCache(void)(void),
-        ping(JPMPingRequest)(void) throws ServiceFault(ErrorMessage),
-        pkgInfo(void)(Package) throws ServiceFault(ErrorMessage),
+
+        ping(JPMPingRequest)(void)
+            throws ServiceFault(ErrorMessage),
+
+        getPackage(void)(Package)
+            throws ServiceFault(ErrorMessage),
 
         createTeam(JPMTeamManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
+
         deleteTeam(JPMTeamManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
+
         addTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
+
         removeTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
+
         promoteTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
+
         demoteTeamMember(JPMTeamMemberManagementRequest)(void)
             throws ServiceFault(ErrorMessage),
+
         listTeamMembers(JPMTeamManagementRequest)(GroupMembersResponse)
             throws ServiceFault(ErrorMessage),
+
         upgrade(void)(void)
             throws ServiceFault(ErrorMessage)
 }
+

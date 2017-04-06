@@ -457,7 +457,7 @@ main {
     }]
 
     // Local operations working on packages
-    [pkgInfo()(package) {
+    [getPackage()(package) {
         PackageRequired
     }]
 

@@ -35,12 +35,25 @@ type Request: void {
 }
 ```
 
+In general, all operations working on a specific type should first list the
+action, followed by type name, followed by variations of the action
+(i.e. `With`).
+
 ### Request and Response Types
 
 The names of these types should be prefixed with a common prefix for the entire
 service. This prefix doesn't have to match the package name, but should be
 similar to the actual name. Generic types that are only used for operations
-should also be suffixed with either `Request` or `Response`.
+should also be suffixed with either `Request` or `Response`. The middle section
+should match the operation name. These type names might get a bit long, we will
+have to live with this. We don't have namespaces, and there isn't much we can
+do about it without. These names accurately describe what they do. They should
+however only be used for one thing. If these types are more general, they
+should be refactored into their own type.
+
+Simple inline types should be used, if possible. However this should only be
+done, if it is reasonable to assume that no other fields will ever be added.
+Root values should only contain void.
 
 Responses returning a typical listing (i.e. `listType[With...]` should return
 have the following response type:
@@ -64,3 +77,4 @@ performed. The `name_interface.iol` file should only contain interfaces and
 types, no embedding should be created. This allows for other services to
 use the types exposed by another services, without having to depend on the
 Java service.
+

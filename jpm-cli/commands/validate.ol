@@ -7,7 +7,7 @@ init {
 define HandleValidateCommand {
     if (command == "validate") {
         handled = true;
-        pkgInfo@JPM()(ignored);
+        getPackage@JPM()(ignored);
         println@Console("OK")()
     }
 }
