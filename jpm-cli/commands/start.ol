@@ -9,7 +9,7 @@ Usage: jpm start [OPTIONS] [PROGRAM-ARGUMENTS]
 
 Options:
 
---deploy <profile> <configurationFile>: Uses a deployment profile
+--conf <profile> <configurationFile>: Uses a deployment profile
 --verbose: Verbose output
 --debug <suspend> <port>: Uses joliedebug as the interpreter
 --trace: Turns on trace output
@@ -24,7 +24,7 @@ define HandleStartCommand {
 
         with (consumeRequest) {
             .parsed << command;
-            .options.("deploy").count = 2;
+            .options.("conf").count = 2;
             .options.("verbose").count = 0;
             .options.("trace").count = 0;
             .options.("debug").count = 2
@@ -41,15 +41,16 @@ define HandleStartCommand {
             startReq.debug.port = int(command.options.debug[1])
         };
 
-        isDeploying = is_defined(command.options.deploy);
-        if (isDeploying) {
-            startReq.deployment.profile = command.options.deploy[0];
-            startReq.deployment.file = command.options.deploy[1]
+        isConfiguring = is_defined(command.options.conf);
+        if (isConfiguring) {
+            startReq.config.profile = command.options.conf[0];
+            startReq.config.file = command.options.conf[1]
         };
 
         for (i = 0, i < #command.args, i++) {
             startReq.args[#startReq.args] = command.args[i]
         };
+        startReq.check = false;
 
         start@JPM(startReq)()
     }

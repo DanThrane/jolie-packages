@@ -10,7 +10,7 @@ include "execution.iol" from "execution"
 
 include "argument-parser.iol"
 
-ext outputPort JPM {
+#ext outputPort JPM {
     Interfaces: IJPM
 }
 

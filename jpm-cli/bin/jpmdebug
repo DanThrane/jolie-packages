@@ -7,13 +7,22 @@ shift
 port=$1
 shift
 joliedebug $suspend $port \
-    --pkg-folder jpm_packages/ \
-    --main.jpm jpm_packages/jpm/main.ol \
-    --main.jpm-cli main.ol \
-    --main.jpm-lockfile jpm_packages/jpm-lockfile/main.ol \
-    --main.packages jpm_packages/packages/main.ol \
-    --main.jpm-downloader jpm_packages/jpm-downloader/main.ol \
-    -C CALLBACK_LOCATION=\"socket://localhost:$cbPort\" \
-    --deploy cli-dev cli.col \
+    --pkg jpm-cli,.,main.ol \
+    --pkg jpm,jpm_packages/jpm,main.ol \
+    --pkg jpm-lockfile,jpm_packages/jpm-lockfile,main.ol \
+    --pkg jpm-downloader,jpm_packages/jpm-downloader,main.ol \
+    --pkg packages,jpm_packages/packages,main.ol \
+    --pkg console-ui,jpm_packages/console-ui \
+    --pkg execution,jpm_packages/execution \
+    --pkg jpm-utils,jpm_packages/jpm-utils \
+    --pkg pkg,jpm_packages/pkg \
+    --pkg registry,jpm_packages/registry \
+    --pkg semver,jpm_packages/semver \
+    --pkg registry-database,jpm_packages/registry-database \
+    --pkg system-java,jpm_packages/system-java \
+    --pkg authorization,jpm_packages/authorization \
+    -C CALLBACK_LOCATION=\"socket://localhost:$port\" \
+    --conf cli-dev cli.col \
+    jpm-cli.pkg \
     $curr $@
 cd $curr

@@ -1,0 +1,5 @@
+profile "embed-packages" configures "packages" {
+    inputPort Packages {
+        Location: "local"
+    }
+}

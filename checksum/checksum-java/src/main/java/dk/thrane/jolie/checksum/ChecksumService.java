@@ -3,6 +3,7 @@ package dk.thrane.jolie.checksum;
 import jolie.runtime.FaultException;
 import jolie.runtime.Value;
 import jolie.runtime.embedding.RequestResponse;
+import jolie.runtime.JavaService;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +13,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.function.Consumer;
 
-public class ChecksumService {
+public class ChecksumService extends JavaService {
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
     public static String bytesToHex(byte[] bytes) {

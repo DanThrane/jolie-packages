@@ -22,11 +22,11 @@ class JPM(
         val TEST_DATA_DIR = File("/tmp/registry-data")
         val DEPLOY_REGISTRY = JPM(
                 File(System.getenv("JPM_CLI_HOME"), "../registry"),
-                listOf("start", "--deploy", "reg-test", "test.col")
+                listOf("start", "--conf", "reg-test", "test.col")
         )
         val KILL_REGISTRY = JPM(
                 File(System.getenv("JPM_CLI_HOME"), "../registry-admin"),
-                listOf("start", "--deploy", "testenv-kill", "deployment.col")
+                listOf("start", "--conf", "testenv-kill", "deployment.col")
         )
 
         fun withRegistry(printIO: Boolean = true, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {

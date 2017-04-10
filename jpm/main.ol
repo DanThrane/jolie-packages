@@ -19,11 +19,15 @@ execution { sequential }
 
 constants {
     FOLDER_PACKAGES = "jpm_packages",
-    PING_MESSAGE = "ping",
-    REGISTRY_PUBLIC: string
+    PING_MESSAGE = "ping"
 }
 
-ext inputPort JPM {
+init {
+    // TODO Change this later when syntax is confirmed
+    REGISTRY_PUBLIC -> global.params.REGISTRY_PUBLIC
+}
+
+#ext inputPort JPM {
     Interfaces: IJPM
 }
 
@@ -51,13 +55,9 @@ outputPort LockFiles {
 
 embedded {
     Jolie:
-        "lockfiles.ol" in LockFiles
-    JoliePackage:
-        "jpm-downloader" in Downloader,
-        "packages" in Packages {
-            inputPort Packages { Location: "local" Protocol: sodep }
-            // TODO Shoudln't we allow no protocol?
-        }
+        "lockfiles.ol" in LockFiles,
+        "jpm-downloader.pkg" in Downloader,
+        "--conf embedded-packages embeds.col packages.pkg" in Packages
 }
 
 define TokensSave {
@@ -558,6 +558,7 @@ main {
     }]
 
     [start(request)() {
+        // Locate our own package
         PackageRequired;
         nextArgument -> command[#command];
 
@@ -568,6 +569,7 @@ main {
             })
         };
 
+        // Setup basic args for interpreter (e.g. trace and debug stuff)
         nextArgument = "joliedev";
         exists@File(global.path + FILE_SEP + FOLDER_PACKAGES)(packagesExists);
 
@@ -585,58 +587,57 @@ main {
             nextArgument = "--trace"
         };
 
-        isDeploying = is_defined(request.deployment);
-
-        if (isDeploying) {
-            nextArgument = "--pkg-root";
-            nextArgument = package.name;
-            nextArgument = "--main." + package.name;
-            nextArgument = global.path + FILE_SEP + package.main
+        if (request.check) {
+            nextArgument = "--check"
         };
 
-        // TODO package-self and main entry for self
+        // Configure own package
+        nextArgument = "--pkg";
+        nextArgument = package.name + ",.," + package.main;
 
-        if (packageExists) {
-            nextArgument = "--pkg-folder";
-            nextArgument = FOLDER_PACKAGES
-        };
-
-        currentDependency -> package.dependencies[i];
-        for (i = 0, i < #package.dependencies, i++) {
-            dependencyName = currentDependency.name;
+        // @output resolvedDependencies: Map<String, SemVer>
+        // Configure dependency packages
+        DependencyTree;
+        foreach (dependencyName : resolvedDependencies) {
             PackageRequiredInDependency;
+            nextArgument = "--pkg";
+            definition = dependencyName + "," +
+                baseDependencyFolder + dependencyName;
             if (is_defined(dependencyPackage.main)) {
-                nextArgument = "--main." + dependencyName;
-                nextArgument = global.path + FILE_SEP + FOLDER_PACKAGES +
-                    FILE_SEP + dependencyName +
-                    FILE_SEP + dependencyPackage.main
+                definition += "," + dependencyPackage.main
             };
+            nextArgument = definition;
             undef(dependencyPackage)
         };
 
-        if (isDeploying) {
-            nextArgument = "--deploy";
-            nextArgument = request.deployment.profile;
-            nextArgument = request.deployment.file
-        } else {
-            nextArgument = package.main
+        // Configuration (if available)
+        if (is_defined(request.config)) {
+            nextArgument = "--conf";
+            nextArgument = request.config.profile;
+            nextArgument = request.config.file
         };
 
+        // Add entry-point (i.e. this package)
+        nextArgument = package.name + ".pkg";
+
+        // Arguments to program
         if (is_defined(request.args)) {
             for (i = 0, i < #request.args, i++) {
                 nextArgument = request.args[i]
             }
         };
 
+        // Ready to execute. Send out event
+        EventHandle.in.name = "pre-start";
+        EventHandle;
+
+        // Prepare execution of package
         executionRequest.directory = global.path;
         executionRequest.suppress = false;
         executionRequest.commands -> command;
         joinRequest.piece -> command;
         joinRequest.delimiter = " \\\n    ";
         join@StringUtils(joinRequest)(prettyCommand);
-
-        EventHandle.in.name = "pre-start";
-        EventHandle;
 
         if (request.isVerbose) {
             Callback.location = global.callback;
@@ -647,8 +648,13 @@ main {
 
         execute@Execution(executionRequest)();
 
+        // Execution is done. Send out event
         EventHandle.in.name = "post-start";
         EventHandle
+    }]
+
+    [dependencyTree()() {
+        DependencyTree
     }]
 
     [installDependencies()() {

@@ -6,8 +6,8 @@ type DigestRequest: void {
 interface IChecksum {
     RequestResponse:
         directoryDigest(DigestRequest)(string)
-            throws FileNotFound(string),
-                   AlgorithmNotFound(string),
+            throws FileNotFound(string)
+                   AlgorithmNotFound(string)
                    IOException(string)
 }
 

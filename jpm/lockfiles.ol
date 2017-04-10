@@ -1,6 +1,6 @@
 include "lockfiles.iol"
 include "file.iol"
-include "semver" "semver.iol"
+include "semver.iol" from "semver"
 
 execution { sequential }
 

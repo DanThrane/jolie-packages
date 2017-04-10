@@ -1,6 +1,6 @@
-include "jpm-utils" "utils.iol"
-include "packages" "packages.iol"
-include "semver" "semver.iol"
+include "utils.iol" from "jpm-utils"
+include "packages.iol" from "packages"
+include "semver.iol" from "semver"
 
 type LockedDependency: bool {
     .locked?: SemVer

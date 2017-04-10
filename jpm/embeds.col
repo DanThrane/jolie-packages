@@ -1,0 +1,5 @@
+profile "embedded-packages" configures "packages" {
+    inputPort Packages {
+        Location: "local"
+    }
+}

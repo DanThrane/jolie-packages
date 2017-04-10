@@ -4,6 +4,7 @@ include "install.ol"
 include "publish.ol"
 include "search.ol"
 include "start.ol"
+include "check.ol"
 include "login.ol"
 include "register.ol"
 include "logout.ol"
@@ -27,6 +28,7 @@ define HandleCommand {
     HandlePublishCommand;
     HandleSearchCommand;
     HandleStartCommand;
+    HandleCheckCommand;
     HandleLoginCommand;
     HandleRegisterCommand;
     HandleLogoutCommand;

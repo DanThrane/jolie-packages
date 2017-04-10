@@ -1,6 +1,5 @@
 include "utils.iol" from "jpm-utils"
 include "registry.iol" from "registry"
-
 type JPMAuthenticateRequest: void {
     .username: string
     .password: string
@@ -49,7 +48,7 @@ type JPMQueryResponse: void {
 
 type JPMStartRequest: void {
     .args[0, *]: string
-    .deployment?: void {
+    .config?: void {
         .profile: string
         .file: string
     }
@@ -59,6 +58,7 @@ type JPMStartRequest: void {
     }
     .isVerbose: bool
     .trace: bool
+    .check: bool
 }
 
 type JPMTeamManagementRequest: void {
@@ -135,6 +135,9 @@ interface IJPM {
             throws ServiceFault(ErrorMessage),
 
         upgrade(void)(void)
+            throws ServiceFault(ErrorMessage),
+
+        dependencyTree(void)(undefined)
             throws ServiceFault(ErrorMessage)
 }
 

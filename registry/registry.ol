@@ -9,6 +9,7 @@ include "semver.iol" from "semver"
 include "packages.iol" from "packages"
 include "utils.iol" from "jpm-utils"
 include "authorization.iol" from "authorization"
+include "checksum.iol" from "checksum"
 
 execution { concurrent }
 
@@ -28,30 +29,27 @@ outputPort Packages {
     Interfaces: IPackages
 }
 
-ext outputPort Authorization {
+#ext outputPort Authorization {
     Interfaces: IAuthorization
 }
 
-ext outputPort RegDB {
+#ext outputPort RegDB {
     Interfaces: IRegistryDatabase
 }
 
 embedded {
-    JoliePackage:
-        "packages" in Packages {
-            inputPort Packages { Location: "local" Protocol: sodep }
-        }
+    Jolie:
+        "--conf embed-packages embeds.col packages.pkg" in Packages
 }
 
-constants {
-    ENABLE_KILL_COMMAND: bool,
-    KILL_TOKEN: string,
-    FRESH_TOKEN: long,
-    DATA_DIR: string,
-    TRUSTED_PEERS: void {
-        .location[0, *]: string
-    },
-    CHECKSUM_ALGORITHM: string
+init {
+    // TODO Change this if we end up using params from global.params
+    ENABLE_KILL_COMMAND -> global.params.ENABLE_KILL_COMMAND;
+    KILL_TOKEN -> global.params.KILL_TOKEN;
+    FRESH_TOKEN -> global.params.FRESH_TOKEN;
+    DATA_DIR -> global.params.DATA_DIR;
+    TRUSTED_PEERS -> global.params.TRUSTED_PEERS;
+    CHECKSUM_ALGORITHM -> global.params.CHECKSUM_ALGORITHM
 }
 
 /**

@@ -11,7 +11,7 @@ class DeploymentTest {
     @Test
     fun testDeploymentWithDefaults() {
         assertTrue(folder.exists())
-        val result = JPM(folder, listOf("start", "--deploy",
+        val result = JPM(folder, listOf("start", "--conf",
                 "with-defaults", "deployment.col")).run()
         assertEquals(0, result.exitCode)
         assertNull(result.exitMessage)
@@ -23,7 +23,7 @@ class DeploymentTest {
     @Test
     fun testDeploymentWithDefaultsOverwritten() {
         assertTrue(folder.exists())
-        val result = JPM(folder, listOf("start", "--deploy",
+        val result = JPM(folder, listOf("start", "--conf",
                 "without-defaults", "deployment.col")).run()
         assertEquals(0, result.exitCode)
         assertNull(result.exitMessage)
@@ -35,7 +35,7 @@ class DeploymentTest {
     @Test
     fun testDeploymentWithDefaultsOverwrittenAndArguments() {
         assertTrue(folder.exists())
-        val result = JPM(folder, listOf("start", "--deploy",
+        val result = JPM(folder, listOf("start", "--conf",
                 "without-defaults", "deployment.col", "arg1", "arg2", "arg3")).run()
         assertEquals(0, result.exitCode)
         assertNull(result.exitMessage)
@@ -50,7 +50,7 @@ class DeploymentTest {
     @Test
     fun testDeploymentWithDefaultsAndArguments() {
         assertTrue(folder.exists())
-        val result = JPM(folder, listOf("start", "--deploy",
+        val result = JPM(folder, listOf("start", "--conf",
                 "with-defaults", "deployment.col", "arg1", "arg2", "arg3")).run()
         assertEquals(0, result.exitCode)
         assertNull(result.exitMessage)

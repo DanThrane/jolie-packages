@@ -132,10 +132,9 @@ main {
         };
         installationLocation = packagesLocation + FILE_SEP + request.name;
 
-        copyDir@File({
-            .from = cacheInstallationLocation,
-            .to = installationLocation
-        })()
+        copyRequest.("from") = cacheInstallationLocation;
+        copyRequest.to = installationLocation;
+        copyDir@File(copyRequest)()
     }]
 
     [clearCache()() {
