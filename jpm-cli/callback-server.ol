@@ -1,7 +1,7 @@
-include "jpm" "callback.iol"
+include "callback.iol" from "jpm"
 include "console.iol"
 include "string_utils.iol"
-include "console-ui" "console_ui.iol"
+include "console_ui.iol" from "console-ui"
 
 execution { sequential }
 

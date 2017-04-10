@@ -1,5 +1,5 @@
-include "packages" "packages.iol"
-include "jpm-utils" "utils.iol"
+include "packages.iol" from "packages"
+include "utils.iol" from "jpm-utils"
 
 type PackageInformation: void {
     .packageName: string

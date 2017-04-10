@@ -1,12 +1,12 @@
 include "console.iol"
 include "runtime.iol"
 
-include "jpm" "jpm.iol"
-include "jpm" "callback.iol"
-include "jpm-utils" "utils.iol"
-include "semver" "semver.iol"
-include "console-ui" "console_ui.iol"
-include "execution" "execution.iol"
+include "jpm.iol" from "jpm"
+include "callback.iol" from "jpm"
+include "utils.iol" from "jpm-utils"
+include "semver.iol" from "semver"
+include "console_ui.iol" from "console-ui"
+include "execution.iol" from "execution"
 
 include "argument-parser.iol"
 

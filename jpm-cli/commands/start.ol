@@ -1,4 +1,4 @@
-include "execution" "execution.iol"
+include "execution.iol" from "execution"
 include "string_utils.iol"
 
 init {

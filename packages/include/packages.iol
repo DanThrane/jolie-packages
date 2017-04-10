@@ -1,4 +1,4 @@
-include "semver" "semver.iol"
+include "semver.iol" from "semver"
 
 constants {
     VALIDATION_INFO = 0,

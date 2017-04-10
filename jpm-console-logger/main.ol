@@ -1,5 +1,5 @@
-include "jpm-log" "logger.iol"
-include "console-ui" "console-ui.iol"
+include "logger.iol" from "jpm-log"
+include "console-ui.iol" from "console-ui"
 
 ext inputPort ConsoleLogger {
     Interfaces: ILogger

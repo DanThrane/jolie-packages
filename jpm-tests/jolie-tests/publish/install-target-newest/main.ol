@@ -1,4 +1,4 @@
-include "publish-target" "publish-iface.iol"
+include "publish-iface.iol" from "publish-target"
 include "console.iol"
 
 outputPort PublishTarget {

@@ -1,7 +1,7 @@
 include "authorization.iol"
 include "time.iol"
-include "bcrypt" "bcrypt.iol"
-include "jpm-utils" "utils.iol"
+include "bcrypt.iol" from "bcrypt"
+include "utils.iol" from "jpm-utils"
 include "db_scripts.iol"
 include "config.iol"
 

@@ -1,6 +1,6 @@
-include "mustache" "mustache.iol"
+include "mustache.iol" from "mustache"
 include "string_utils.iol"
-include "jpm" "jpm.iol"
+include "jpm.iol" from "jpm"
 include "config.iol"
 include "console.iol"
 

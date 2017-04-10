@@ -1,6 +1,6 @@
-include "jpm" "jpm.iol"
+include "jpm.iol" from "jpm"
 include "console.iol"
-include "console-ui" "console_ui.iol"
+include "console_ui.iol" from "console-ui"
 
 init {
     global.helpText.("init") = "

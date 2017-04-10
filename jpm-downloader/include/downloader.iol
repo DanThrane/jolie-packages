@@ -1,4 +1,4 @@
-include "jpm-utils" "utils.iol"
+include "utils.iol" from "jpm-utils"
 
 type InstallRequest: void {
     .major: int

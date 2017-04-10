@@ -1,10 +1,10 @@
 include "downloader.iol"
-include "registry" "registry.iol"
+include "registry.iol" from "registry"
 include "console.iol"
 include "string_utils.iol"
 include "file.iol"
 include "zip_utils.iol"
-include "system-java" "system.iol"
+include "system.iol" from "system-java"
 
 execution { sequential }
 

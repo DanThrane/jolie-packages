@@ -5,10 +5,10 @@ include "console.iol"
 include "file.iol"
 include "zip_utils.iol"
 include "time.iol"
-include "semver" "semver.iol"
-include "packages" "packages.iol"
-include "jpm-utils" "utils.iol"
-include "authorization" "authorization.iol"
+include "semver.iol" from "semver"
+include "packages.iol" from "packages"
+include "utils.iol" from "jpm-utils"
+include "authorization.iol" from "authorization"
 
 execution { concurrent }
 

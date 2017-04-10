@@ -1,4 +1,4 @@
-include "registry" "admin.iol"
+include "admin.iol" from "registry"
 include "console.iol"
 
 constants {

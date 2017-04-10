@@ -1,8 +1,8 @@
-include "packages" "packages.iol"
-include "semver" "semver.iol"
-include "jpm-utils" "utils.iol"
-include "registry-database" "db.iol"
-include "authorization" "authorization.iol"
+include "packages.iol" from "packages"
+include "semver.iol" from "semver"
+include "utils.iol" from "jpm-utils"
+include "db.iol" from "registry-database"
+include "authorization.iol" from "authorization"
 
 // Request response types
 

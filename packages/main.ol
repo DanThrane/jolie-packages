@@ -3,8 +3,8 @@ include "packages.iol"
 include "string_utils.iol"
 include "console.iol"
 include "json_utils.iol"
-include "semver" "semver.iol"
-include "jpm-utils" "utils.iol"
+include "semver.iol" from "semver"
+include "utils.iol" from "jpm-utils"
 
 execution { concurrent }
 
