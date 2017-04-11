@@ -25,6 +25,12 @@ inputPort Registry {
     Interfaces: IRegistry
 }
 
+outputPort PeerRegistry {
+    Location: "socket://localhost:12345"
+    Protocol: sodep
+    Interfaces: IRegistry
+}
+
 outputPort Packages {
     Interfaces: IPackages
 }
@@ -264,6 +270,30 @@ define TeamValidateName {
  */
 define TeamCreateNameSpaced {
     groupName = "teams." + groupName
+}
+
+/**
+ * @input .known: Map<String, Registry>
+ * @input .deps[0, *]: Dependency
+ * @throws RegistryFault if dependencies are not from a trusted peer
+ */
+define ValidateDependenciesLocation {
+    ns -> ValidateDependenciesLocation;
+
+    ns.dep -> ns.in.deps[ns.i];
+    for (ns.i = 0, ns.i < #ns.in.deps, ns.i++) {
+        PeerRegistry.location = ns.in.known.(ns.dep.registry).location;
+        getPackageInfo@PeerRegistry(ns.dep.name)(ns.info);
+        if (#ns.info.results == 0) {
+            throw(RegistryFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Could not find needed dependency '" +
+                    ns.dep.name + "'. Registry '" + ns.dep.registry + "' " +
+                    "returned no results."
+            })
+        };
+        undef(ns.info)
+    }
 }
 
 init {
@@ -594,6 +624,9 @@ main {
             // Check if we trust the registries used
             manifestReg -> package.registries[i];
             for (i = 0, i < #package.registries, i++) {
+                // Also create a lookup table for registries (used later)
+                knownRegistries.(manifestReg.name) << manifestReg;
+
                 found = false;
                 for (j = 0, !found && j < #TRUSTED_PEERS.location, j++) {
                     if (manifestReg.location == TRUSTED_PEERS.location[j]) {
@@ -610,6 +643,23 @@ main {
                     })
                 }
             };
+
+            knownRegistries.("public") << {
+                .name = "public",
+                .location = global.params.PUBLIC_LOCATION
+            };
+
+            // Note we do not need to check the dependency. Packages can only
+            // use known registries, and we have already vetted all
+            // registries.
+            ValidateDependenciesLocation.in.known -> knownRegistries;
+
+            ValidateDependenciesLocation.in.deps -> package.dependencies;
+            ValidateDependenciesLocation;
+
+            ValidateDependenciesLocation.in.deps ->
+                package.interfaceDependencies;
+            ValidateDependenciesLocation;
 
             // Check that version is OK. We do not allow downgrading versions
             verCheckReq.package.name = package.name;

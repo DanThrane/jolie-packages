@@ -20,10 +20,6 @@
             "version": "1.0.0"
         },
         {
-            "name": "sqlite",
-            "version": "1.0.0"
-        },
-        {
             "name": "authorization",
             "version": "1.0.0"
         },
@@ -33,6 +29,10 @@
         },
         {
             "name": "jpm-utils",
+            "version": "0.1.0"
+        },
+        {
+            "name": "checksum",
             "version": "0.1.0"
         }
     ],
@@ -51,14 +51,6 @@
         },
         {
             "name": "registry-database",
-            "version": "0.1.0"
-        },
-        {
-            "name": "checksum",
-            "version": "0.1.0"
-        },
-        {
-            "name": "checksum",
             "version": "0.1.0"
         }
     ]

@@ -1,7 +1,7 @@
-constants {
-    DATABASE_USERNAME: string,
-    DATABASE_PASSWORD: string,
-    DATABASE_HOST: string,
-    DATABASE_BASE: string,
-    DATABASE_DRIVER: string
+init {
+    DATABASE_USERNAME -> global.params.DATABASE_USERNAME;
+    DATABASE_PASSWORD -> global.params.DATABASE_PASSWORD;
+    DATABASE_HOST -> global.params.DATABASE_HOST;
+    DATABASE_BASE -> global.params.DATABASE_BASE;
+    DATABASE_DRIVER -> global.params.DATABASE_DRIVER
 }

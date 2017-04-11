@@ -5,7 +5,12 @@
     "private": false,
     "main": "main.ol",
     "authors": "Dan Sebastian Thrane",
-    "dependencies": {
+    "dependencies": [
+        { "name": "jpm", "version": "*" },
+        { "name": "jpm-utils", "version": "*" },
+        { "name": "semver", "version": "*" },
+        { "name": "console-ui", "version": "*" },
         { "name": "execution", "version": "*" }
-    }
+    ]
 }
+

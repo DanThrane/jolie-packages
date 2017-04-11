@@ -109,9 +109,7 @@ main {
                     downloadRequest.token = request.token
                 };
 
-                println@Console("Ready to download dependency")();
                 download@Registry(downloadRequest)(value);
-                println@Console("Done. Installing dependency")();
 
                 cachedPkg = cacheInstallationLocation + ".pkg";
                 writeFile@File({

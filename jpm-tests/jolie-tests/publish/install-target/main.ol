@@ -6,8 +6,8 @@ outputPort PublishTarget {
 }
 
 embedded {
-    JoliePackage:
-        "publish-target" in PublishTarget
+    Jolie:
+        "publish-target.pkg" in PublishTarget
 }
 
 main {

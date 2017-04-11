@@ -595,9 +595,9 @@ main {
         nextArgument = "--pkg";
         nextArgument = package.name + ",.," + package.main;
 
-        // @output resolvedDependencies: Map<String, SemVer>
         // Configure dependency packages
         DependencyTree;
+        baseDependencyFolder = FOLDER_PACKAGES + FILE_SEP;
         foreach (dependencyName : resolvedDependencies) {
             PackageRequiredInDependency;
             nextArgument = "--pkg";

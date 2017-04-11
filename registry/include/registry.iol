@@ -101,36 +101,55 @@ interface IRegistry {
     RequestResponse:
         authenticate(AuthenticationRequest)(AuthenticationResponse)
             throws RegistryFault(ErrorMessage),
+
         register(RegistrationRequest)(RegistrationResponse)
             throws RegistryFault(ErrorMessage),
+
         whoami(WhoamiRequest)(string)
             throws RegistryFault(ErrorMessage),
+
         logout(RegistryLogOutRequest)(void),
+
         publish(PublishRequest)(void)
             throws RegistryFault(ErrorMessage),
+
         createPackage(CreatePackageRequest)(void)
             throws RegistryFault(ErrorMessage),
+
         getPackageInfo(GetPackageRequest)(GetPackageResponse),
+
         getPackageList(GetPackageListRequest)(GetPackageListResponse),
+
         download(DownloadRequest)(DownloadResponse)
             throws RegistryFault(ErrorMessage),
+
         query(RegistryQueryRequest)(RegistryQueryResponse),
+
         getDependencies(RegDependencyRequest)(RegDependencyResponse),
+
         ping(string)(string),
+
         createTeam(TeamManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
+
         deleteTeam(TeamManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
+
         addTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
+
         removeTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
+
         promoteTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
+
         demoteTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
+
         listTeamMembers(TeamManagementRequest)(GroupMembersResponse)
             throws RegistryFault(ErrorMessage),
+
         checksum(ChecksumRequest)(string)
             throws RegistryFault(ErrorMessage)
 }

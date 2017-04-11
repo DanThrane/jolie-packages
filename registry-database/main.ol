@@ -6,7 +6,7 @@ include "db.iol"
 
 execution { concurrent }
 
-ext inputPort RegDB {
+#ext inputPort RegDB {
     Interfaces: IRegistryDatabase
 }
 
@@ -102,7 +102,8 @@ main {
               package_versions.patch,
               package_versions.label,
               package_versions.description,
-              package_versions.license
+              package_versions.license,
+              package_versions.checksum
             FROM
               package, package_versions
             WHERE

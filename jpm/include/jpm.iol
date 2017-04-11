@@ -1,5 +1,6 @@
 include "utils.iol" from "jpm-utils"
 include "registry.iol" from "registry"
+
 type JPMAuthenticateRequest: void {
     .username: string
     .password: string

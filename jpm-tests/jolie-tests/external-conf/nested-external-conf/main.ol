@@ -5,10 +5,10 @@ type CustomType: string {
     .inner: bool
 }
 
-constants {
-    A: undefined,
-    B: undefined,
-    C: void { .a: void { .b: int { .c: int } } }
+init {
+    A -> global.params.A;
+    B -> global.params.B;
+    C -> global.params.C
 }
 
 main {

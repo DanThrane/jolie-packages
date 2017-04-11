@@ -1,8 +1,8 @@
 include "admin.iol" from "registry"
 include "console.iol"
 
-constants {
-    KILL_TOKEN: string,
+init {
+    KILL_TOKEN -> global.params.KILL_TOKEN
 }
 
 outputPort Admin {

@@ -3,12 +3,16 @@
     "description": "The JPM client.",
     "version": "0.1.0",
     "main": "main.ol",
+    "private": false,
     "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
     "license": "MIT",
     "dependencies": [
         { "name": "packages", "version": "*" },
-        { "name": "registry", "version": "*" },
         { "name": "system-java", "version": "*" },
         { "name": "jpm-downloader", "version": "*" }
+    ],
+    "interfaceDependencies": [
+        { "name": "registry", "version": "*" }
     ]
 }
+

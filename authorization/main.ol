@@ -7,7 +7,7 @@ include "config.iol"
 
 execution { sequential }
 
-ext inputPort Authorization {
+#ext inputPort Authorization {
     Interfaces: IAuthorization
 }
 

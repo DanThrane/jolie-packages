@@ -20,17 +20,11 @@ class JPM(
         val TEST_DATABASE_LOC = File("/tmp/registry-test.db")
         val TEST_DATABASE_LOC2 = File("/tmp/auth-test.db")
         val TEST_DATA_DIR = File("/tmp/registry-data")
-        val DEPLOY_REGISTRY = JPM(
-                File(System.getenv("JPM_CLI_HOME"), "../registry"),
-                listOf("start", "--conf", "reg-test", "test.col")
-        )
-        val KILL_REGISTRY = JPM(
-                File(System.getenv("JPM_CLI_HOME"), "../registry-admin"),
-                listOf("start", "--conf", "testenv-kill", "deployment.col")
-        )
 
         fun withRegistry(printIO: Boolean = true, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
-            val registryProcess = JPM.DEPLOY_REGISTRY.startProcess()
+            val registryHome = File(System.getenv("JPM_CLI_HOME"), "../registry")
+            val registryProcess = ProcessBuilder("bash", "start_test.sh").directory(registryHome).start()
+
             var ready = false
 
             if (TEST_DATABASE_LOC.exists()) {
@@ -67,7 +61,9 @@ class JPM(
             try {
                 block()
             } finally {
-                JPM.KILL_REGISTRY.run()
+                val command = ("joliedev --pkg registry,jpm_packages/registry --pkg registry-admin,.,main.ol " +
+                        "--conf testenv-kill deployment.col registry-admin.pkg").split(" ").toTypedArray()
+                ProcessBuilder(*command).directory(File(System.getenv("JPM_CLI_HOME"), "../registry-admin")).start()
                 registryProcess.waitFor()
             }
         }
@@ -104,6 +100,12 @@ class JPM(
             message = stdOut.takeLast(stdOut.size - errorLine).joinToString("\n") { it }
         }
 
+        val exception = stdErr.indexOfFirst { it.contains("\tat") }
+        if (exception != -1) {
+            exitCode = -1
+            message = stdErr.joinToString("\n") { it }
+        }
+
         val exceptionLine = stdErr.indexOfFirst { it.startsWith("SEVERE:") && it.contains(".ol") }
 
         if (exceptionLine != -1) {
@@ -113,7 +115,7 @@ class JPM(
         return JPMResult(stdOut, stdErr, exitCode, message)
     }
 
-    fun runAndAssert(): JPMResult = run().assertSuccess()
+fun runAndAssert(): JPMResult = run().assertSuccess()
 
     private fun readFully(from: InputStream, to: MutableList<String>) = Thread({
         val reader = BufferedReader(InputStreamReader(from))

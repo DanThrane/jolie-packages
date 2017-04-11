@@ -1,8 +1,8 @@
 include "console.iol"
 
-constants {
-    TOKEN: string,
-    SOME_OTHER_TOKEN: string
+init {
+    TOKEN -> global.params.TOKEN;
+    SOME_OTHER_TOKEN -> global.params.SOME_OTHER_TOKEN
 }
 
 main {

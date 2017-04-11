@@ -1,11 +1,12 @@
 include "database.iol"
 
-constants {
-    AUTH_DATABASE_USERNAME: string,
-    AUTH_DATABASE_PASSWORD: string,
-    AUTH_DATABASE_HOST: string,
-    AUTH_DATABASE_BASE: string,
-    AUTH_DATABASE_DRIVER: string
+init {
+    // TODO Change if syntax is approved
+    AUTH_DATABASE_USERNAME -> global.params.AUTH_DATABASE_USERNAME;
+    AUTH_DATABASE_PASSWORD -> global.params.AUTH_DATABASE_PASSWORD;
+    AUTH_DATABASE_HOST -> global.params.AUTH_DATABASE_HOST;
+    AUTH_DATABASE_BASE -> global.params.AUTH_DATABASE_BASE;
+    AUTH_DATABASE_DRIVER -> global.params.AUTH_DATABASE_DRIVER
 }
 
 define DatabaseConnect {

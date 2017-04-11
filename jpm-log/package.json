@@ -1,9 +1,0 @@
-{
-    "authors": "Dan Sebastian Thrane <dthrane@gmail.com> (github.com/DanThrane)",
-    "description": "A logging service used internally in JPM.",
-    "name": "jpm-log",
-    "license": "MIT",
-    "main": "logger.ol",
-    "private": false,
-    "version": "0.1.0"
-}

@@ -1,11 +1,12 @@
-constants {
+init {
     // Idea is we could use for some kind of migration system
-    ALL_VERSIONS = {
+    ALL_VERSIONS << {
         .v[0] = "version0",
         .v[1] = "version1",
         .v[2] = "version2"
-    },
-    INIT_SCRIPTS = {
+    };
+
+    INIT_SCRIPTS << {
         .version0[0] = "
             CREATE TABLE IF NOT EXISTS package (
                 packageName     TEXT    PRIMARY KEY
