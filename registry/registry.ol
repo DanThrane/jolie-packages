@@ -278,7 +278,15 @@ define TeamCreateNameSpaced {
  * @throws RegistryFault if dependencies are not from a trusted peer
  */
 define ValidateDependenciesLocation {
+scope(ValidateDependenciesLocation) {
     ns -> ValidateDependenciesLocation;
+
+    install(IOException =>
+        throw(RegistryFault, {
+            .type = FAULT_INTERNAL,
+            .message = "Unable to contact registry '" + ns.dep.registry + "'"
+        })
+    );
 
     ns.dep -> ns.in.deps[ns.i];
     for (ns.i = 0, ns.i < #ns.in.deps, ns.i++) {
@@ -294,6 +302,7 @@ define ValidateDependenciesLocation {
         };
         undef(ns.info)
     }
+}
 }
 
 init {
