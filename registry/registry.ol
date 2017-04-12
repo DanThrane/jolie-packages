@@ -513,9 +513,10 @@ main {
             .packageName = packageName;
             .version << version
         };
-        checkIfPackageExists@RegDB(checkForPackageRequest)(packageExists);
+        getInformationAboutPackageOfVersion@RegDB
+            (checkForPackageRequest)(info);
 
-        if (!packageExists) {
+        if (#info.result == 0) {
             throw(RegistryFault, {
                 .type = FAULT_BAD_REQUEST,
                 .message = "Could not find package"
@@ -539,7 +540,8 @@ main {
         readFile@File({
             .filename = pkgFileName,
             .format = "binary"
-        })(res.payload)
+        })(res.payload);
+        res.checksum = info.result.checksum
     }]
 
     [publish(req)(res) {

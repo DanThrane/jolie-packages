@@ -82,7 +82,7 @@ define CacheLocation {
         mkdir@File(registryFolder)()
     };
     installationName = request.name + "_" +
-        request.major + "_" + request.minor + "_" + request.patch;
+        request.major + "_" + request.minor + "_" + request.patch + ".pkg";
     cacheInstallationLocation = registryFolder + FILE_SEP + installationName
 }
 
@@ -90,6 +90,7 @@ main {
     [installDependency(request)() {
         CacheLocation;
         exists@File(cacheInstallationLocation)(hasCachedCopy);
+
         if (!hasCachedCopy) {
             Registry.location = request.registryLocation;
 
@@ -110,29 +111,23 @@ main {
                 };
 
                 download@Registry(downloadRequest)(value);
-
-                cachedPkg = cacheInstallationLocation + ".pkg";
                 writeFile@File({
                     .content = value.payload,
-                    .filename = cachedPkg
-                })();
-                unzip@ZipUtils({
-                    .targetPath = cacheInstallationLocation,
-                    .filename = cachedPkg
-                })();
-                delete@File(cachedPkg)()
+                    .filename = cacheInstallationLocation
+                })()
             }
         };
+
         packagesLocation = request.targetPackage + FILE_SEP + "jpm_packages";
-        exists@File(packagesLocation)(hasPackagesFolder);
-        if (!hasPackagesFolder) {
-            mkdir@File(packagesLocation)()
-        };
         installationLocation = packagesLocation + FILE_SEP + request.name;
 
-        copyRequest.("from") = cacheInstallationLocation;
-        copyRequest.to = installationLocation;
-        copyDir@File(copyRequest)()
+        exists@File(packagesLocation)(hasPackagesFolder);
+        if (!hasPackagesFolder) mkdir@File(packagesLocation)();
+
+        unzip@ZipUtils({
+            .targetPath = installationLocation,
+            .filename = cacheInstallationLocation
+        })()
     }]
 
     [clearCache()() {

@@ -53,8 +53,10 @@ type DownloadRequest: void {
     .version: SemVer
     .token?: string
 }
+
 type DownloadResponse: void {
     .payload: raw
+    .checksum: string
 }
 
 type RegistryQueryRequest: void {

@@ -10,6 +10,7 @@ type PackageInformation: void {
     .description?: string
     .license: LicenseIdentifier
     .checksum: string
+    .origin: string
 }
 
 type RegDBQueryRequest: void {
@@ -23,10 +24,14 @@ type RegDBQueryResult: void {
 type RegDBCheckIfPkgExistsRequest: void {
     .packageName: string
     .version?: SemVer
+    .origin?: string
 }
+
+type RegDBCheckIfPkgExistsResponse: bool
 
 type RegDBPkgInfoRequest: void {
     .packageName: string
+    .origin?: string
 }
 
 type RegDBPkgInfoResult: void {
@@ -34,7 +39,7 @@ type RegDBPkgInfoResult: void {
 }
 
 type RegDBPkgInfoSpecific: void {
-    .result: PackageInformation
+    .result[0, 1]: PackageInformation
 }
 
 type RegDBPkgListResult: void {
@@ -45,6 +50,7 @@ type RegDBCompareWithNewestRequest: void {
     .package: void {
         .name: string
         .version: SemVer
+        .origin?: string
     }
 }
 
@@ -57,6 +63,7 @@ type RegDBGetDependenciesRequest: void {
     .package: void {
         .name: string
         .version: SemVer
+        .origin?: string
     }
 }
 
@@ -64,21 +71,29 @@ type RegDBGetDependenciesResult: void {
     .dependencies[0, *]: void {
         .name: string
         .version: string
+        .origin?: string // TODO Should not be optional
     }
     .interfaceDependencies[0, *]: void {
         .name: string
         .version: string
+        .origin?: string // TODO Should not be optional
     }
 }
 
 type PackageInsertionRequest: void {
     .package: Package
     .checksum: string
+    .origin?: string
 }
 
 type RegDBPkgInfoSpecificRequest: void {
     .packageName: string
     .version: SemVer
+    .origin?: string
+}
+
+type RegDBCreatePackage: string {
+    .origin?: string
 }
 
 interface IRegistryDatabase {
@@ -89,7 +104,7 @@ interface IRegistryDatabase {
 
         checkIfPackageExists
             (RegDBCheckIfPkgExistsRequest)
-            (bool),
+            (RegDBCheckIfPkgExistsResponse),
 
         getInformationAboutPackage
             (RegDBPkgInfoRequest)
@@ -109,7 +124,7 @@ interface IRegistryDatabase {
         insertNewPackage(PackageInsertionRequest)(void)
             throws RegDBFault(ErrorMessage),
 
-        createPackage(string)(void)
+        createPackage(RegDBCreatePackage)(void)
             throws RegDBFault(ErrorMessage),
 
         getDependencies

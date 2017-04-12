@@ -3,7 +3,8 @@ init {
     ALL_VERSIONS << {
         .v[0] = "version0",
         .v[1] = "version1",
-        .v[2] = "version2"
+        .v[2] = "version2",
+        .v[3] = "version3"
     };
 
     INIT_SCRIPTS << {
@@ -73,6 +74,23 @@ init {
         .version2[0] = "
             ALTER TABLE package_versions
             ADD COLUMN checksum TEXT;
+        ",
+        // add optional origin registry to packages and dependencies
+        .version3[0] = "
+            ALTER TABLE package_versions
+            ADD COLUMN origin TEXT NOT NULL DEFAULT 'local'
+        ",
+        .version3[1] = "
+            ALTER TABLE package_dependency
+            ADD COLUMN pkgOrigin TEXT NOT NULL DEFAULT 'local'
+        ",
+        .version3[2] = "
+            ALTER TABLE package_dependency
+            ADD COLUMN depOrigin TEXT NOT NULL DEFAULT 'local'
+        ",
+        .version3[3] = "
+            ALTER TABLE package
+            ADD COLUMN origin TEXT NOT NULL DEFAULT 'local'
         "
     }
 }

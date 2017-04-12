@@ -16,15 +16,19 @@ constants {
 }
 
 define DatabaseConnect {
-    with (connectionInfo) {
-        .username = DATABASE_USERNAME;
-        .password = DATABASE_PASSWORD;
-        .host = DATABASE_HOST;
-        .database = DATABASE_BASE;
-        .driver = DATABASE_DRIVER
-    };
-    connect@Database(connectionInfo)();
-    undef(connectionInfo)
+    // No need to create multiple connections in a single request.
+    if (!DatabaseConnect.connected) {
+        with (connectionInfo) {
+            .username = DATABASE_USERNAME;
+            .password = DATABASE_PASSWORD;
+            .host = DATABASE_HOST;
+            .database = DATABASE_BASE;
+            .driver = DATABASE_DRIVER
+        };
+        connect@Database(connectionInfo)();
+        undef(connectionInfo);
+        DatabaseConnect.connected = true
+    }
 }
 
 define DatabaseInit {
@@ -43,6 +47,7 @@ define DatabaseInit {
             version = v.row.currentVersion
         };
 
+        // TODO This should be done in a single transaction!
         for (j = version, j < #ALL_VERSIONS.v, j++) {
             name = ALL_VERSIONS.v[j];
             for (i = 0, i < #INIT_SCRIPTS.(name), i++) {
@@ -63,23 +68,27 @@ define DatabaseInit {
  * @input package: Package
  * @input .currDependency: Dependency
  * @input .type: int
+ * @input .origin: string
  * @output adds insert statement to 'statements'
  */
 define DependencyInsert {
     // TODO Cross registry dependencies here!
+    // TODO Fix dep origin!!!
     ns -> DependencyInsert;
     undef(ns.insertQuery);
     ns.insertQuery = "
         INSERT INTO package_dependency
-        (packageName, major, minor, patch, dependency, type, version)
+        (packageName, major, minor, patch, dependency, type, version,
+         pkgOrigin, depOrigin)
         VALUES (:packageName, :major, :minor, :patch, :dependency,
-                :type, :version);
+                :type, :version, :pkgOrigin, 'local');
     ";
     ns.insertQuery.packageName = package.name;
     ns.insertQuery.major = package.version.major;
     ns.insertQuery.minor = package.version.minor;
     ns.insertQuery.patch = package.version.patch;
     ns.insertQuery.type = ns.in.type;
+    ns.insertQuery.pkgOrigin = ns.in.origin;
 
     ns.insertQuery.dependency = ns.in.currDependency.name;
     ns.insertQuery.version = ns.in.currDependency.version;
@@ -103,7 +112,8 @@ main {
               package_versions.label,
               package_versions.description,
               package_versions.license,
-              package_versions.checksum
+              package_versions.checksum,
+              package_versions.origin
             FROM
               package, package_versions
             WHERE
@@ -121,6 +131,8 @@ main {
 
     [checkIfPackageExists(request)(result) {
         DatabaseConnect;
+        if (!is_defined(request.origin)) request.origin = "local";
+
         if (!is_defined(request.version)) {
             containsQuery = "
                 SELECT
@@ -128,88 +140,93 @@ main {
                 FROM
                     package
                 WHERE
-                    packageName = :packageName;
+                    packageName = :packageName AND
+                    origin = :origin;
             ";
             containsQuery.packageName = request.packageName;
+            containsQuery.origin = request.origin;
             query@Database(containsQuery)(sqlResponse);
             result = sqlResponse.row.count == 1
         } else {
             containsQuery = "
                 SELECT
-                  package.packageName AS packageName,
-                  major,
-                  minor,
-                  patch,
-                  label,
-                  description,
-                  license
+                  COUNT(packageName) AS count
                 FROM
-                  package,
                   package_versions
                 WHERE
-                  package.packageName = :packageName AND
-                  package.packageName = package_versions.packageName AND
+                  packageName = :packageName AND
                   major = :major AND
                   minor = :minor AND
-                  patch = :patch;
+                  patch = :patch AND
+                  origin = :origin;
             ";
             containsQuery.packageName = request.packageName;
             containsQuery.major = request.version.major;
             containsQuery.minor = request.version.minor;
             containsQuery.patch = request.version.patch;
+            containsQuery.origin = request.origin;
 
             query@Database(containsQuery)(sqlResponse);
-            result = #sqlResponse.row == 1
+            result = sqlResponse.row.count == 1
         }
     }]
 
     [getInformationAboutPackageOfVersion(request)(result) {
         DatabaseConnect;
+        if (!is_defined(request.origin)) request.origin = "local";
+
         packageQuery = "
             SELECT
-              package.packageName AS packageName,
+              packageName,
               major,
               minor,
               patch,
               label,
               description,
               license,
-              checksum
+              checksum,
+              origin
             FROM
-              package,
               package_versions
             WHERE
-              package.packageName = :packageName AND
-              package.packageName = package_versions.packageName AND
+              packageName = :packageName AND
               major = :major AND
               minor = :minor AND
-              patch = :patch
+              patch = :patch AND
+              origin = :origin
         ";
         packageQuery.packageName = request.packageName;
+        packageQuery.major = request.version.major;
+        packageQuery.minor = request.version.minor;
+        packageQuery.patch = request.version.patch;
+        packageQuery.origin = request.origin;
         query@Database(packageQuery)(sqlResponse);
-        result.results -> sqlResponse.row
+        result.result -> sqlResponse.row
     }]
 
     [getInformationAboutPackage(request)(result) {
         DatabaseConnect;
+        if (!is_defined(request.origin)) request.origin = "local";
+
         packageQuery = "
             SELECT
-              package.packageName AS packageName,
+              packageName,
               major,
               minor,
               patch,
               label,
               description,
               license,
-              checksum
+              checksum,
+              origin
             FROM
-              package,
               package_versions
             WHERE
-              package.packageName = :packageName AND
-              package.packageName = package_versions.packageName;
+              packageName = :packageName AND
+              origin = :origin
         ";
         packageQuery.packageName = request.packageName;
+        packageQuery.origin = request.origin;
         query@Database(packageQuery)(sqlResponse);
         result.results -> sqlResponse.row
     }]
@@ -218,18 +235,17 @@ main {
         DatabaseConnect;
         packageQuery = "
             SELECT
-              package.packageName AS packageName,
+              packageName,
               major,
               minor,
               patch,
               label,
               description,
-              license
+              license,
+              checksum,
+              origin
             FROM
-              package,
               package_versions
-            WHERE
-              package.packageName = package_versions.packageName;
         ";
         query@Database(packageQuery)(sqlResponse);
         result.results -> sqlResponse.row
@@ -237,6 +253,10 @@ main {
 
     [comparePackageWithNewestVersion(request)(result) {
         DatabaseConnect;
+
+        if (!is_defined(request.package.origin)) {
+            request.package.origin = "local"
+        };
 
         // Returns no rows if input version is the newest, otherwise the newest
         // version
@@ -250,6 +270,7 @@ main {
               package_versions
             WHERE
               packageName = :packageName AND
+              origin = :origin AND
               (
                 (major > :major) OR
                 (major = :major AND minor > :minor) OR
@@ -263,6 +284,7 @@ main {
             LIMIT 1;
         ";
         packageQuery.packageName = request.package.name;
+        packageQuery.origin = request.package.origin;
         packageQuery.major = request.package.version.major;
         packageQuery.minor = request.package.version.minor;
         packageQuery.patch = request.package.version.patch;
@@ -282,6 +304,7 @@ main {
 
     [insertNewPackage(request)() {
         package -> request.package;
+        if (!is_defined(request.origin)) request.origin = "local";
         DatabaseConnect;
         scope (insertion) {
             install (SQLException =>
@@ -295,10 +318,10 @@ main {
             packageInsertion = "
                 INSERT INTO package_versions
                     (packageName, major, minor, patch, label, description,
-                     license, checksum)
+                     license, checksum, origin)
                 VALUES
                     (:packageName, :major, :minor, :patch, :label, :description,
-                     :license, :checksum);
+                     :license, :checksum, :origin);
             ";
             packageInsertion.packageName = package.name;
             packageInsertion.major = package.version.major;
@@ -308,9 +331,12 @@ main {
             packageInsertion.description = package.description;
             packageInsertion.license = package.license;
             packageInsertion.checksum = request.checksum;
+            packageInsertion.origin = request.origin;
             statements[#statements] << packageInsertion;
 
             // Insert dependencies
+            DependencyInsert.in.origin = request.origin;
+
             DependencyInsert.in.currDependency -> package.dependencies[i];
             DependencyInsert.in.type = DEPENDENCY_TYPE_RUNTIME;
             for (i = 0, i < #package.dependencies, i++) {
@@ -332,8 +358,12 @@ main {
         }
     }]
 
-    [createPackage(packageName)() {
+    [createPackage(request)() {
         DatabaseConnect;
+
+        if (!is_defined(request.origin)) request.origin = "local";
+        packageName = request;
+
         scope (insertion) {
             install (SQLException =>
                 throw(RegDBFault, {
@@ -343,14 +373,17 @@ main {
             );
 
             insertionRequest = "
-                INSERT INTO package (packageName) VALUES (:packageName);
+                INSERT INTO package (packageName, origin)
+                VALUES (:packageName, :origin);
             ";
             insertionRequest.packageName = packageName;
+            insertionRequest.origin = request.origin;
             update@Database(insertionRequest)(ret)
         }
     }]
 
     [getDependencies(request)(result) {
+        // TODO Add origin
         scope(s) {
             install(SQLException =>
                 throw(RegDBFault, {
@@ -390,3 +423,4 @@ main {
         }
     }]
 }
+
