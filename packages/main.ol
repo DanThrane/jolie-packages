@@ -113,7 +113,8 @@ define ValidateDependencies {
             (validRegistryType);
 
         if (!is_defined(dependency.registry)) {
-            packageDependency.registry = "public"
+            packageDependency.registry = "public";
+            packageDependency.registryLocation = "local"
         } else {
             if (!validRegistryType) {
                 nextItem << {
@@ -131,7 +132,9 @@ define ValidateDependencies {
                                 "registry '" + dependency.registry + "'"
                     }
                 } else {
-                    packageDependency.registry = dependency.registry
+                    packageDependency.registry = dependency.registry;
+                    packageDependency.registryLocation =
+                        knownRegistries.(dependency.registry).location
                 }
             }
         };

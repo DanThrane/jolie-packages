@@ -72,8 +72,6 @@ define DatabaseInit {
  * @output adds insert statement to 'statements'
  */
 define DependencyInsert {
-    // TODO Cross registry dependencies here!
-    // TODO Fix dep origin!!!
     ns -> DependencyInsert;
     undef(ns.insertQuery);
     ns.insertQuery = "
@@ -81,7 +79,7 @@ define DependencyInsert {
         (packageName, major, minor, patch, dependency, type, version,
          pkgOrigin, depOrigin)
         VALUES (:packageName, :major, :minor, :patch, :dependency,
-                :type, :version, :pkgOrigin, 'local');
+                :type, :version, :pkgOrigin, :depOrigin);
     ";
     ns.insertQuery.packageName = package.name;
     ns.insertQuery.major = package.version.major;
@@ -92,6 +90,7 @@ define DependencyInsert {
 
     ns.insertQuery.dependency = ns.in.currDependency.name;
     ns.insertQuery.version = ns.in.currDependency.version;
+    ns.insertQuery.depOrigin = ns.in.currDependency.registryLocation;
     statements[#statements] << ns.insertQuery
 }
 
@@ -383,7 +382,6 @@ main {
     }]
 
     [getDependencies(request)(result) {
-        // TODO Add origin
         scope(s) {
             install(SQLException =>
                 throw(RegDBFault, {
@@ -393,21 +391,28 @@ main {
             );
 
             DatabaseConnect;
+
+            if (!is_defined(request.package.origin)) {
+                request.package.origin = "local"
+            };
+
             dependencyQuery = "
                 SELECT
-                  dependency AS name, version, type
+                  dependency AS name, version, type, depOrigin as origin
                 FROM
                   package_dependency
                 WHERE
                   packageName = :packageName AND
                   major = :major AND
                   minor = :minor AND
-                  patch = :patch;
+                  patch = :patch AND
+                  pkgOrigin = :origin
             ";
             dependencyQuery.packageName = request.package.name;
             dependencyQuery.major = request.package.version.major;
             dependencyQuery.minor = request.package.version.minor;
             dependencyQuery.patch = request.package.version.patch;
+            dependencyQuery.origin = request.package.origin;
             query@Database(dependencyQuery)(sqlResponse);
             row -> sqlResponse.row[i];
             for (i = 0, i < #sqlResponse.row, i++) {

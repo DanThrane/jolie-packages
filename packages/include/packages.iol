@@ -21,6 +21,7 @@ type Dependency: void {
     .name: string
     .version: SemVerExpression
     .registry: string
+    .registryLocation: string
 }
 
 type Package: void {

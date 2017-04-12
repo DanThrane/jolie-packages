@@ -10,5 +10,4 @@ joliedev \
     --pkg pkg,jpm_packages/pkg \
     --pkg semver,jpm_packages/semver \
     --conf reg-development config.col \
-    --trace \
     registry.pkg

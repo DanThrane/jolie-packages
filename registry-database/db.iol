@@ -71,12 +71,12 @@ type RegDBGetDependenciesResult: void {
     .dependencies[0, *]: void {
         .name: string
         .version: string
-        .origin?: string // TODO Should not be optional
+        .origin: string
     }
     .interfaceDependencies[0, *]: void {
         .name: string
         .version: string
-        .origin?: string // TODO Should not be optional
+        .origin: string
     }
 }
 

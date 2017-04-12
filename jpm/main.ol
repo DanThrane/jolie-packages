@@ -251,6 +251,7 @@ scope(DependencyTree) {
         } else {
             checkLockRequest = global.path;
             checkLockRequest.dep << currDependency;
+
             isLocked@LockFiles(checkLockRequest)(lockInformation);
             if (lockInformation && !ignoreLockfile) {
                 // Always use the lock file, if available
@@ -320,6 +321,8 @@ scope(DependencyTree) {
             for (i = 0, i < #subDependencies, i++) {
                 item << subDependencies[i];
                 item.registry = registryName;
+                item.registryLocation = item.origin;
+                undef(item.origin);
                 dependencyStack[#dependencyStack] << item;
                 undef(item)
             };

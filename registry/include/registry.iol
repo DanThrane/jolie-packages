@@ -74,11 +74,13 @@ type RegDependencyResponse: void {
     .dependencies[0, *]: void {
         .name: string
         .version: string
+        .origin: string
     }
 
     .interfaceDependencies[0, *]: void {
         .name: string
         .version: string
+        .origin: string
     }
 }
 
