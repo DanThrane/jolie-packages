@@ -1,12 +1,25 @@
-include "downloader.iol"
-include "registry.iol" from "registry"
 include "console.iol"
 include "string_utils.iol"
 include "file.iol"
 include "zip_utils.iol"
+
+include "downloader.iol"
+include "registry.iol" from "registry"
 include "system.iol" from "system-java"
+include "checksum.iol" from "checksum"
+include "packages.iol" from "packages"
 
 execution { sequential }
+
+#ext
+outputPort Packages {
+    Interfaces: IPackages
+}
+
+#ext
+outputPort RegDB {
+    Interfaces: IRegistryDatabase
+}
 
 outputPort Registry {
     Protocol: sodep
@@ -95,6 +108,8 @@ main {
             Registry.location = request.registryLocation;
 
             scope(pkgScope) {
+                // Download and save
+                // TODO Delete file in case of errors
                 install(InvalidArgumentFault =>
                     println@Console(InvalidArgumentFault.message)()
                 );
@@ -114,7 +129,62 @@ main {
                 writeFile@File({
                     .content = value.payload,
                     .filename = cacheInstallationLocation
-                })()
+                })();
+
+                // Validate checksum
+                directoryDigest@Checksum({
+                    .algorithm = value.checksumAlgorithm,
+                    .file = cacheInstallationLocation
+                })(ownChecksum);
+
+                if (ownChecksum != value.checksum) {
+                    throw(DownloaderFault, {
+                        .type = FAULT_INTERNAL,
+                        .message = "Checksum mismatch!"
+                    })
+                };
+
+                // Validate package manifest
+                readEntry@ZipUtils({
+                    .filename = cacheInstallationLocation,
+                    .entry = "package.json"
+                })(entry);
+
+                if (!is_defined(entry)) {
+                    throw(DownloaderFault, {
+                        .fault = FAULT_INTERNAL,
+                        .message = "Package returned from registry has " +
+                            "no manifest!"
+                    })
+                };
+
+                // Insert into database
+                validate@Packages({ .data = entry })(report);
+                if (reprt.hasErrors) {
+                    throw(DownloaderFault, {
+                        .fault = FAULT_INTERNAL,
+                        .message = "Downloaded manifest has errors!"
+                    })
+                };
+
+                pkgRequest.packageName = request.name;
+                pkgRequest.origin = Registry.location;
+                checkIfPackageExists@RegDB(pkgRequest)(exists);
+                if (!exists) {
+                    println@Console("Creating package!")();
+                    createPackage@RegDB(request.name {
+                        .origin = Registry.location
+                    })()
+                };
+
+                insertRequest.package << report.package;
+                insertRequest.checksum = value.checksum;
+
+                println@Console("Inserting new package:")();
+                valueToPrettyString@StringUtils(insertRequest)(pretty);
+                println@Console(pretty)();
+
+                insertNewPackage@RegDB(insertRequest)()
             }
         };
 

@@ -541,7 +541,8 @@ main {
             .filename = pkgFileName,
             .format = "binary"
         })(res.payload);
-        res.checksum = info.result.checksum
+        res.checksum = info.result.checksum;
+        res.checksumAlgorithm = CHECKSUM_ALGORITHM
     }]
 
     [publish(req)(res) {

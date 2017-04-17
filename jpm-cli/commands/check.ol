@@ -31,10 +31,10 @@ define HandleCheckCommand {
         checkReq.isVerbose = is_defined(command.options.verbose);
         checkReq.trace = false;
 
-        isConfiguring = is_defined(command.options.config);
+        isConfiguring = is_defined(command.options.conf);
         if (isConfiguring) {
-            checkReq.config.profile = command.options.config[0];
-            checkReq.config.file = command.options.config[1]
+            checkReq.config.profile = command.options.conf[0];
+            checkReq.config.file = command.options.conf[1]
         };
 
         for (i = 0, i < #command.args, i++) {

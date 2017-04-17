@@ -3,3 +3,18 @@ profile "embedded-packages" configures "packages" {
         Location: "local"
     }
 }
+
+profile "embedded-regdb" configures "registry-database" {
+    inputPort RegDB { Location: "local" },
+    DATABASE_USERNAME = "",
+    DATABASE_PASSWORD = "",
+    DATABASE_HOST = "",
+    DATABASE_BASE = "cache_registry.db",
+    DATABASE_DRIVER = "sqlite"
+}
+
+profile "embedded-cache" configures "jpm-downloader" {
+    outputPort RegDB embeds "embedded-regdb",
+    outputPort Packages embeds "embedded-packages"
+}
+

@@ -56,7 +56,7 @@ outputPort LockFiles {
 embedded {
     Jolie:
         "lockfiles.ol" in LockFiles,
-        "jpm-downloader.pkg" in Downloader,
+        "--conf embedded-cache embeds.col jpm-downloader.pkg" in Downloader,
         "--conf embedded-packages embeds.col packages.pkg" in Packages
 }
 

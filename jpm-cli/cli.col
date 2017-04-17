@@ -11,21 +11,6 @@ profile "jpm-dev" configures "jpm" {
     REGISTRY_PUBLIC = "socket://localhost:12345"
 }
 
-profile "cli-daemon" configures "jpm-cli" {
-    outputPort JPM {
-        Location: "socket://localhost:23000"
-        Protocol: sodep
-    }
-}
-
-profile "jpm-dev-daemon" configures "jpm" {
-    inputPort JPM {
-        Location: "socket://localhost:23000"
-        Protocol: sodep
-    },
-    REGISTRY_PUBLIC = "socket://localhost:12345"
-}
-
 profile "jpm-prod" configures "jpm" {
     inputPort JPM { Location: "local" Protocol: sodep },
     REGISTRY_PUBLIC = "socket://46.101.188.142:12345"

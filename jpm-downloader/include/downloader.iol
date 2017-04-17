@@ -12,6 +12,8 @@ type InstallRequest: void {
 
 interface IDownloader {
     RequestResponse:
-        installDependency(InstallRequest)(void) throws DownloaderFault(ErrorMessage),
+        installDependency(InstallRequest)(void)
+            throws DownloaderFault(ErrorMessage),
         clearCache(void)(void)
 }
+

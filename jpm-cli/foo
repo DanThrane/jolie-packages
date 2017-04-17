@@ -1,0 +1,48 @@
+Apr 14, 2017 12:46:22 PM jolie.Interpreter logInfo
+INFO: [main.ol] Thrown unhandled fault: DriverClassNotFound
+[1;36m[INFO][m Start command:
+joliedev \
+    --check \
+    --pkg \
+    jpm-cli,.,main.ol \
+    --pkg \
+    console-ui,jpm_packages/console-ui \
+    --pkg \
+    execution,jpm_packages/execution \
+    --pkg \
+    registry,jpm_packages/registry,registry.ol \
+    --pkg \
+    registry-database,jpm_packages/registry-database,main.ol \
+    --pkg \
+    sqlite,jpm_packages/sqlite \
+    --pkg \
+    jpm,jpm_packages/jpm,main.ol \
+    --pkg \
+    packages,jpm_packages/packages,main.ol \
+    --pkg \
+    pkg,jpm_packages/pkg \
+    --pkg \
+    bcrypt,jpm_packages/bcrypt \
+    --pkg \
+    authorization,jpm_packages/authorization,main.ol \
+    --pkg \
+    jpm-downloader,jpm_packages/jpm-downloader,main.ol \
+    --pkg \
+    semver,jpm_packages/semver \
+    --pkg \
+    checksum,jpm_packages/checksum \
+    --pkg \
+    jpm-utils,jpm_packages/jpm-utils \
+    --pkg \
+    system-java,jpm_packages/system-java \
+    jpm-cli.pkg
+Apr 14, 2017 12:46:23 PM jolie.lang.parse.SemanticVerifier validate
+SEVERE: Aborting: input file semantically invalid.
+Apr 14, 2017 12:46:23 PM jolie.Interpreter buildOOIT
+SEVERE: /home/dan/projects/jolie-packages/jpm-cli/./main.ol:13: error: unresolved external output port 'JPM'
+
+jolie.InterpreterException: Exiting
+	at jolie.Interpreter.buildOOIT(Interpreter.java:1321)
+	at jolie.Interpreter.init(Interpreter.java:1090)
+	at jolie.Interpreter.run(Interpreter.java:1176)
+	at jolie.Jolie.main(Jolie.java:60)

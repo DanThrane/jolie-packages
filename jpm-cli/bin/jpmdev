@@ -14,9 +14,11 @@ joliedev \
     --pkg pkg,jpm_packages/pkg \
     --pkg registry,jpm_packages/registry \
     --pkg semver,jpm_packages/semver \
-    --pkg registry-database,jpm_packages/registry-database \
+    --pkg registry-database,jpm_packages/registry-database,main.ol \
     --pkg system-java,jpm_packages/system-java \
     --pkg authorization,jpm_packages/authorization \
+    --pkg checksum,jpm_packages/checksum \
+    --pkg sqlite,jpm_packages/sqlite \
     -C CALLBACK_LOCATION=\"socket://localhost:$port\" \
     --conf cli-dev cli.col \
     jpm-cli.pkg \

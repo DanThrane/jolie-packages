@@ -57,6 +57,7 @@ type DownloadRequest: void {
 type DownloadResponse: void {
     .payload: raw
     .checksum: string
+    .checksumAlgorithm: string
 }
 
 type RegistryQueryRequest: void {
