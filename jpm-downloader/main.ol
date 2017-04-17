@@ -103,10 +103,9 @@ main {
     [installDependency(request)() {
         CacheLocation;
         exists@File(cacheInstallationLocation)(hasCachedCopy);
+        Registry.location = request.registryLocation;
 
         if (!hasCachedCopy) {
-            Registry.location = request.registryLocation;
-
             scope(pkgScope) {
                 // Download and save
                 // TODO Delete file in case of errors
@@ -117,7 +116,7 @@ main {
                     throw(DownloaderFault, pkgScope.RegistryFault)
                 );
 
-                downloadRequest.packageIdentifier = request.name;
+                downloadRequest.packageName = request.name;
                 downloadRequest.version.major = request.major;
                 downloadRequest.version.minor = request.minor;
                 downloadRequest.version.patch = request.patch;
@@ -133,7 +132,7 @@ main {
 
                 // Validate checksum
                 directoryDigest@Checksum({
-                    .algorithm = value.checksumAlgorithm,
+                    .algorithm = "sha-256",
                     .file = cacheInstallationLocation
                 })(ownChecksum);
 
@@ -171,7 +170,6 @@ main {
                 pkgRequest.origin = Registry.location;
                 checkIfPackageExists@RegDB(pkgRequest)(exists);
                 if (!exists) {
-                    println@Console("Creating package!")();
                     createPackage@RegDB(request.name {
                         .origin = Registry.location
                     })()
@@ -179,12 +177,51 @@ main {
 
                 insertRequest.package << report.package;
                 insertRequest.checksum = value.checksum;
-
-                println@Console("Inserting new package:")();
-                valueToPrettyString@StringUtils(insertRequest)(pretty);
-                println@Console(pretty)();
-
+                insertRequest.origin = Registry.location;
                 insertNewPackage@RegDB(insertRequest)()
+            }
+        } else {
+            with (infoRequest) {
+                .packageName = request.name;
+                .version.major = request.major;
+                .version.minor = request.minor;
+                .version.patch = request.patch
+            };
+            dbInfoRequest << infoRequest;
+            dbInfoRequest.origin = Registry.location;
+            (
+                checksum@Registry(infoRequest)(info) |
+                getInformationAboutPackageOfVersion@RegDB
+                    (dbInfoRequest)(dbInfo)
+            );
+
+            if (#info.result != #dbInfo.result || #info.result != 1) {
+                throw(DownloaderFault, {
+                    .type = FAULT_INTERNAL,
+                    .message = "Could not retrieve checksum for package. " +
+                        "If this error persists try clearing the cache."
+                })
+            };
+
+            if (info.result != dbInfo.result.checksum) {
+                throw(DownloaderFault, {
+                    .type = FAULT_INTERNAL,
+                    .message = "Cached checksum doesn't match checksum" +
+                        "returned by registry!"
+                })
+            };
+
+            directoryDigest@Checksum({
+                .algorithm = "sha-256",
+                .file = cacheInstallationLocation
+            })(ownChecksum);
+
+            if (ownChecksum != info.result) {
+                throw(DownloaderFault, {
+                    .type = FAULT_INTERNAL,
+                    .message = "Checksum of cached package doesn't match" +
+                        "checksum!"
+                })
             }
         };
 
@@ -201,6 +238,7 @@ main {
     }]
 
     [clearCache()() {
+        // TODO Clear registry-database. Needs endpoint in service
         exists@File(PATH_CACHE)(cacheExists);
         if (cacheExists) {
             deleteDir@File(PATH_CACHE)()

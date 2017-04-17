@@ -49,7 +49,7 @@ type GetPackageListResponse: void {
 }
 
 type DownloadRequest: void {
-    .packageIdentifier: string
+    .packageName: string
     .version: SemVer
     .token?: string
 }
@@ -57,7 +57,6 @@ type DownloadRequest: void {
 type DownloadResponse: void {
     .payload: raw
     .checksum: string
-    .checksumAlgorithm: string
 }
 
 type RegistryQueryRequest: void {
@@ -97,9 +96,13 @@ type TeamMemberManagementRequest: void {
 }
 
 type ChecksumRequest: void {
-    .packageIdentifier: string
+    .packageName: string
     .version: SemVer
     .token?: string
+}
+
+type ChecksumResponse: void {
+    .result[0, 1]: string
 }
 
 interface IRegistry {
@@ -155,7 +158,7 @@ interface IRegistry {
         listTeamMembers(TeamManagementRequest)(GroupMembersResponse)
             throws RegistryFault(ErrorMessage),
 
-        checksum(ChecksumRequest)(string)
+        checksum(ChecksumRequest)(ChecksumResponse)
             throws RegistryFault(ErrorMessage)
 }
 

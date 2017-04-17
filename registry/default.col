@@ -12,7 +12,6 @@ profile "default" configures "registry" {
         // No trusted peers by default
         .location[0] = ""
     },
-    CHECKSUM_ALGORITHM = "sha-256",
     PUBLIC_LOCATION = "socket://localhost:12345"
 }
 

@@ -5,6 +5,7 @@ include "console.iol"
 include "file.iol"
 include "zip_utils.iol"
 include "time.iol"
+
 include "semver.iol" from "semver"
 include "packages.iol" from "packages"
 include "utils.iol" from "jpm-utils"
@@ -54,8 +55,11 @@ init {
     KILL_TOKEN -> global.params.KILL_TOKEN;
     FRESH_TOKEN -> global.params.FRESH_TOKEN;
     DATA_DIR -> global.params.DATA_DIR;
-    TRUSTED_PEERS -> global.params.TRUSTED_PEERS;
-    CHECKSUM_ALGORITHM -> global.params.CHECKSUM_ALGORITHM
+    TRUSTED_PEERS -> global.params.TRUSTED_PEERS
+}
+
+constants {
+    CHECKSUM_ALGORITHM = "sha-256"
 }
 
 /**
@@ -478,7 +482,7 @@ main {
     }]
 
     [download(req)(res) {
-        packageName -> req.packageIdentifier;
+        packageName -> req.packageName;
         version -> req.version;
 
         // Check to make sure package name is safe.
@@ -541,8 +545,7 @@ main {
             .filename = pkgFileName,
             .format = "binary"
         })(res.payload);
-        res.checksum = info.result.checksum;
-        res.checksumAlgorithm = CHECKSUM_ALGORITHM
+        res.checksum = info.result.checksum
     }]
 
     [publish(req)(res) {
@@ -729,7 +732,15 @@ main {
     }]
 
     [checksum(req)(res) {
-        getInformationAboutPackage@RegDB({ .packageName = packageName })(res)
+        with (infoRequest) {
+            .packageName = req.packageName;
+            .version << req.version
+        };
+
+        getInformationAboutPackageOfVersion@RegDB(infoRequest)(info);
+        if (#info.result == 1) {
+            res.result = info.result.checksum
+        }
     }]
 
     [ping(echo)(echo) { nullProcess }]
