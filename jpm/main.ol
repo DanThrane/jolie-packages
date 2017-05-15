@@ -848,14 +848,7 @@ main {
         }
     }]
 
-    [deleteTeam(req)() {
-        scope (s) {
-            RequireTeamManagement;
-            deleteTeam@Registry(outReq)()
-        }
-    }]
-
-    [listTeamMembers(req)(res) {
+   [listTeamMembers(req)(res) {
         scope (s) {
             RequireTeamManagement;
             listTeamMembers@Registry(outReq)(res)

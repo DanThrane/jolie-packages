@@ -408,18 +408,7 @@ main {
         GroupCreate
     }]
 
-    [deleteTeam(req)() {
-        token = req.token;
-        groupName = req.teamName;
-
-        TeamValidateName;
-        TeamCreateNameSpaced;
-        GroupRequireSuperPrivileges
-
-        // TODO Delete team
-    }]
-
-    [addTeamMember(req)() {
+   [addTeamMember(req)() {
         NormalizeRequestUsername;
         token = req.token;
         groupName = req.teamName;

@@ -32,19 +32,6 @@ class TeamTest {
     }
 
     @Test
-    fun testCreatingAndRemovingTeams() {
-        JPM.withRegistry {
-            val teamName = "foo"
-            registerAndAuthenticate()
-            val folder = File(".")
-            JPM(folder, listOf("team", "create", teamName)).runAndAssert()
-            JPM(folder, listOf("team", "delete", teamName)).runAndAssert()
-            JPM(folder, listOf("team", "create", teamName)).runAndAssert()
-            JPM(folder, listOf("team", "list", teamName)).runAndAssert()
-        }
-    }
-
-    @Test
     fun testPromotingAndDemoting() {
         JPM.withRegistry {
             val team = "foo"

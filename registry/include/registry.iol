@@ -140,9 +140,6 @@ interface IRegistry {
         createTeam(TeamManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
 
-        deleteTeam(TeamManagementRequest)(void)
-            throws RegistryFault(ErrorMessage),
-
         addTeamMember(TeamMemberManagementRequest)(void)
             throws RegistryFault(ErrorMessage),
 

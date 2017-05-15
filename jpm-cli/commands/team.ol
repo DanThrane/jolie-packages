@@ -9,7 +9,6 @@ Usage: jpm team [--registry <REG-NAME>] <SUBCOMMAND>
 Available sub-commands:
 -----------------------
 create <TEAM>           Creates a new team
-delete <TEAM>           Deletes a team
 list <TEAM>             Lists members of a team
 add <TEAM> <USER>       Adds <USER> to <TEAM>
 remove <TEAM> <USER>    Removes <USER> from <TEAM>
@@ -56,8 +55,6 @@ define HandleTeamCommand {
 
         if (subCommand == "create") {
             createTeam@JPM({ .teamName = team, .registry = registry })()
-        } else if (subCommand == "delete") {
-            deleteTeam@JPM({ .teamName = team, .registry = registry })()
         } else if (subCommand == "add") {
             RequireUser;
             addTeamMember@JPM({
