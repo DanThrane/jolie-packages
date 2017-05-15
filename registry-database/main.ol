@@ -6,7 +6,7 @@ include "db.iol"
 
 execution { concurrent }
 
-#ext inputPort RegDB {
+inputPort RegDB {
     Interfaces: IRegistryDatabase
 }
 

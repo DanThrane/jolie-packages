@@ -1,0 +1,20 @@
+{
+    "authors": "Dan",
+    "description": "depA",
+    "name": "depA",
+    "private": false,
+    "version": "0.1.0",
+    "dependencies": [
+        {
+            "name": "depB",
+            "version": "*"
+        }
+    ],
+    "interfaceDependencies": [
+        {
+            "name": "depB",
+            "version": "*"
+        }
+    ]
+}
+

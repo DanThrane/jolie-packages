@@ -8,7 +8,7 @@ include "utils.iol" from "jpm-utils"
 
 execution { concurrent }
 
-#ext inputPort Packages {
+inputPort Packages {
     Interfaces: IPackages
 }
 

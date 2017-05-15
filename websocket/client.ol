@@ -16,7 +16,7 @@ inputPort WebSocketClient {
 
 init {
     scope(s) {
-        install(WebSocketFault => 
+        install(WebSocketFault =>
             valueToPrettyString@StringUtils(s.WebSocketFault)(prettyFault);
             println@Console("WebSocketFault:")();
             println@Console(prettyFault)()
@@ -24,7 +24,6 @@ init {
         println@Console("Hello, world!")();
         initialize@WebSocket({ .serializeAs = "text" })();
         println@Console("WebSocket server started!")();
-        
 
         i = 0;
         while (true) {
@@ -45,7 +44,7 @@ main {
         valueToPrettyString@StringUtils(req)(prettyReq);
         println@Console(prettyReq)()
     }]
-    
+
     [onWebSocketMessage(req)() {
         println@Console("Received a callback on onWebSocketMessage")();
         println@Console("Got the following message:")();
@@ -60,3 +59,4 @@ main {
         println@Console(prettyReq)()
     }]
 }
+

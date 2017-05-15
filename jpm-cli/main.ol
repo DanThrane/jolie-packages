@@ -9,7 +9,7 @@ include "console_ui.iol" from "console-ui"
 
 include "argument-parser.iol"
 
-#ext outputPort JPM {
+outputPort JPM {
     Interfaces: IJPM
 }
 

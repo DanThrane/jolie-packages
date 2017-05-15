@@ -1,4 +1,4 @@
-profile "auth-default" configures "authorization" {
+profile "auth-default" configures "authorization" extends "default" {
     DATABASE_USERNAME = "",
     DATABASE_PASSWORD = "",
     DATABASE_HOST = "",

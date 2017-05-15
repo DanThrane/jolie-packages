@@ -1,6 +1,6 @@
-profile "reg-test" configures "registry" {
-    outputPort RegDB embeds "regdb-test",
-    outputPort Authorization embeds "auth-test",
+profile "reg-test" configures "registry" extends "default" {
+    outputPort RegDB embeds "registry-database" with "regdb-test",
+    outputPort Authorization embeds "authorization" with "auth-test",
     ENABLE_KILL_COMMAND = true,
     KILL_TOKEN = "1234",
     DATA_DIR = "/tmp/registry-data"
@@ -23,3 +23,4 @@ profile "auth-test" configures "authorization" {
     AUTH_DATABASE_BASE = "/tmp/auth-test.db",
     AUTH_DATABASE_DRIVER = "sqlite",
 }
+

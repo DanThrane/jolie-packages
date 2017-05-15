@@ -1,0 +1,13 @@
+{
+    "authors": "Dan",
+    "description": "depB",
+    "name": "depB",
+    "private": false,
+    "version": "0.1.0",
+    "dependencies": [
+        {
+            "name": "depC",
+            "version": "*"
+        }
+    ]
+}

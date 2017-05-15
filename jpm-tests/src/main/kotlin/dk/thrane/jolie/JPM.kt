@@ -20,6 +20,8 @@ class JPM(
         val TEST_DATABASE_LOC = File("/tmp/registry-test.db")
         val TEST_DATABASE_LOC2 = File("/tmp/auth-test.db")
         val TEST_DATA_DIR = File("/tmp/registry-data")
+        val CACHE_DIR = File("${System.getProperty("user.home")}/.jpm_cache") // TODO Use different cache
+        val CACHE_DB = File(System.getenv("JPM_CLI_HOME"), "cache_registry.db")
 
         fun withRegistry(printIO: Boolean = true, stdOutCallBack: (String) -> Unit = {}, block: () -> Unit) {
             val registryHome = File(System.getenv("JPM_CLI_HOME"), "../registry")
@@ -33,6 +35,14 @@ class JPM(
 
             if (TEST_DATABASE_LOC2.exists()) {
                 assert(TEST_DATABASE_LOC2.delete())
+            }
+
+            if (CACHE_DIR.exists()) {
+                assert(CACHE_DIR.deleteRecursively())
+            }
+
+            if (CACHE_DB.exists()) {
+                assert(CACHE_DB.delete())
             }
 
             if (TEST_DATA_DIR.exists()) {

@@ -10,7 +10,7 @@ class AuthTest {
     fun testRegistration() {
         JPM.withRegistry {
             val username = "user"
-            val password = "1234"
+            val password = "12345"
 
             val result = JPM(File("."), listOf("register", username, password)).run()
             assertEquals(0, result.exitCode)

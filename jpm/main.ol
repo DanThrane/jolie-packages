@@ -22,16 +22,15 @@ constants {
     PING_MESSAGE = "ping"
 }
 
-init {
-    // TODO Change this later when syntax is confirmed
-    REGISTRY_PUBLIC -> global.params.REGISTRY_PUBLIC
+parameters {
+    REGISTRY_PUBLIC: string
 }
 
-#ext inputPort JPM {
+inputPort JPM {
     Interfaces: IJPM
 }
 
-outputPort Callback {
+dynamic outputPort Callback {
     Interfaces: IJPMCallback
     Protocol: sodep
 }
@@ -40,7 +39,7 @@ outputPort Packages {
     Interfaces: IPackages
 }
 
-outputPort Registry {
+dynamic outputPort Registry {
     Protocol: sodep
     Interfaces: IRegistry
 }

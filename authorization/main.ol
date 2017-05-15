@@ -1,14 +1,21 @@
 include "authorization.iol"
+include "string_utils.iol"
 include "time.iol"
-include "bcrypt.iol" from "bcrypt"
-include "utils.iol" from "jpm-utils"
+
 include "db_scripts.iol"
 include "config.iol"
 
+include "bcrypt.iol" from "bcrypt"
+include "utils.iol" from "jpm-utils"
+
 execution { sequential }
 
-#ext inputPort Authorization {
+inputPort Authorization {
     Interfaces: IAuthorization
+}
+
+define NormalizeRequestUsername {
+    toLowerCase@StringUtils(request.username)(request.username)
 }
 
 /**
@@ -239,8 +246,9 @@ main {
     }]
 
     [register(request)(Auth.out.token) {
+        NormalizeRequestUsername;
         length@StringUtils(request.password)(passwordLength);
-        if (passwordLength <= 5 || passwordLength >= 128) {
+        if (passwordLength < 5 || passwordLength > 128) {
             throw(AuthorizationFault, {
                 .type = FAULT_BAD_REQUEST,
                 .message = "Password length must be between 5 and 128 " +
@@ -249,7 +257,7 @@ main {
         };
 
         length@StringUtils(request.username)(usernameLength);
-        if (usernameLength < 1 || usernameLength >= 64) {
+        if (usernameLength < 1 || usernameLength > 64) {
             throw(AuthorizationFault, {
                 .type = FAULT_BAD_REQUEST,
                 .message = "Username length must be between 1 and 64 " +
@@ -280,6 +288,7 @@ main {
     }]
 
     [authenticate(request)(Auth.out.token) {
+        NormalizeRequestUsername;
         Auth.in.username = request.username;
         Auth.in.password = request.password;
         Auth
@@ -425,7 +434,7 @@ main {
 
         for (i = 0, i < #request.users, i++) {
             if (i > 0) userQ += ", ";
-            userQ += ":user" + i;
+            userQ += "LOWER(:user" + i + ")";
             userQ.("user" + i) = request.users[i]
         };
         userQ += ")";
@@ -505,6 +514,7 @@ main {
     }]
 
     [listGroupsByUser(request)(response) {
+        NormalizeRequestUsername;
         nullProcess // TODO Do we need this?
     }]
 

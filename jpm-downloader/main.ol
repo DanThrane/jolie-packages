@@ -11,17 +11,15 @@ include "packages.iol" from "packages"
 
 execution { sequential }
 
-#ext
 outputPort Packages {
     Interfaces: IPackages
 }
 
-#ext
 outputPort RegDB {
     Interfaces: IRegistryDatabase
 }
 
-outputPort Registry {
+dynamic outputPort Registry {
     Protocol: sodep
     Interfaces: IRegistry
 }

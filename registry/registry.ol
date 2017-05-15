@@ -14,6 +14,10 @@ include "checksum.iol" from "checksum"
 
 execution { concurrent }
 
+define NormalizeRequestUsername {
+    toLowerCase@StringUtils(req.username)(req.username)
+}
+
 inputPort Admin {
     Location: "socket://localhost:12346"
     Protocol: sodep
@@ -26,7 +30,7 @@ inputPort Registry {
     Interfaces: IRegistry
 }
 
-outputPort PeerRegistry {
+dynamic outputPort PeerRegistry {
     Location: "socket://localhost:12345"
     Protocol: sodep
     Interfaces: IRegistry
@@ -36,11 +40,11 @@ outputPort Packages {
     Interfaces: IPackages
 }
 
-#ext outputPort Authorization {
+outputPort Authorization {
     Interfaces: IAuthorization
 }
 
-#ext outputPort RegDB {
+outputPort RegDB {
     Interfaces: IRegistryDatabase
 }
 
@@ -49,13 +53,13 @@ embedded {
         "--conf embed-packages embeds.col packages.pkg" in Packages
 }
 
-init {
-    // TODO Change this if we end up using params from global.params
-    ENABLE_KILL_COMMAND -> global.params.ENABLE_KILL_COMMAND;
-    KILL_TOKEN -> global.params.KILL_TOKEN;
-    FRESH_TOKEN -> global.params.FRESH_TOKEN;
-    DATA_DIR -> global.params.DATA_DIR;
-    TRUSTED_PEERS -> global.params.TRUSTED_PEERS
+parameters {
+    PUBLIC_LOCATION: string,
+    ENABLE_KILL_COMMAND: string,
+    KILL_TOKEN: string,
+    FRESH_TOKEN: string,
+    DATA_DIR: string,
+    TRUSTED_PEERS: undefined
 }
 
 constants {
@@ -332,6 +336,7 @@ init {
 
 main {
     [authenticate(req)(res) {
+        NormalizeRequestUsername;
         // TODO We need some clear rules on usernames and passwords.
         // We need to be sure that a maliciously crafted username won't do any
         // damage in the authorization system.
@@ -345,6 +350,7 @@ main {
     }]
 
     [register(req)(res) {
+        NormalizeRequestUsername;
         scope (s) {
             install(AuthorizationFault =>
                 throw(RegistryFault, s.AuthorizationFault)
@@ -414,6 +420,7 @@ main {
     }]
 
     [addTeamMember(req)() {
+        NormalizeRequestUsername;
         token = req.token;
         groupName = req.teamName;
         member = req.username;
@@ -425,6 +432,7 @@ main {
     }]
 
     [removeTeamMember(req)() {
+        NormalizeRequestUsername;
         token = req.token;
         groupName = req.teamName;
         member = req.username;
@@ -436,6 +444,7 @@ main {
     }]
 
     [promoteTeamMember(req)() {
+        NormalizeRequestUsername;
         token = req.token;
         groupName = req.teamName;
         currentUser = req.username;
@@ -454,6 +463,7 @@ main {
     }]
 
     [demoteTeamMember(req)() {
+        NormalizeRequestUsername;
         token = req.token;
         groupName = req.teamName;
         currentUser = req.username;
@@ -661,7 +671,7 @@ main {
 
             knownRegistries.("public") << {
                 .name = "public",
-                .location = global.params.PUBLIC_LOCATION
+                .location = PUBLIC_LOCATION
             };
 
             // Note we do not need to check the dependency. Packages can only

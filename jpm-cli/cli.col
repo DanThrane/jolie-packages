@@ -1,9 +1,9 @@
 profile "cli-dev" configures "jpm-cli" {
-    outputPort JPM embeds "jpm-dev"
+    outputPort JPM embeds "jpm" with "jpm-dev"
 }
 
 profile "cli-prod" configures "jpm-cli" {
-    outputPort JPM embeds "jpm-prod"
+    outputPort JPM embeds "jpm" with "jpm-prod"
 }
 
 profile "jpm-dev" configures "jpm" {

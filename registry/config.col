@@ -1,6 +1,6 @@
-profile "reg-development" configures "registry" {
-    outputPort RegDB embeds "regdb-development",
-    outputPort Authorization embeds "auth-dev"
+profile "reg-development" configures "registry" extends "default" {
+    outputPort RegDB embeds "registry-database" with "regdb-development",
+    outputPort Authorization embeds "authorization" with "auth-dev"
 }
 
 profile "regdb-development" configures "registry-database" {

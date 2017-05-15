@@ -77,7 +77,7 @@ define UserDeleteById {
 define UserFindById {
     DatabaseConnect;
     UserFindById.q = "
-        SELECT `id`, LOWER(`username`), `password`
+        SELECT `id`, `username`, `password`
         FROM `user`
         WHERE id = :id
     ";
@@ -92,7 +92,7 @@ define UserFindById {
 define UserFindByUsername {
     DatabaseConnect;
     UserFindByUsername.q = "
-        SELECT `id`, LOWER(`username`), `password`
+        SELECT `id`, `username`, `password`
         FROM `user`
         WHERE username = LOWER(:username)
     ";

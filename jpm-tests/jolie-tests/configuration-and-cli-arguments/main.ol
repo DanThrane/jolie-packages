@@ -1,8 +1,8 @@
 include "console.iol"
 
-init {
-    TOKEN -> global.params.TOKEN;
-    SOME_OTHER_TOKEN -> global.params.SOME_OTHER_TOKEN
+parameters {
+    TOKEN: string,
+    SOME_OTHER_TOKEN: string
 }
 
 main {

@@ -14,7 +14,7 @@ class TeamTest {
 
             val folder = File(".")
             JPM(folder, listOf("team", "create", teamName)).runAndAssert()
-            assertTeamMembers(teamName, 1, "MyUser")
+            assertTeamMembers(teamName, 1, "myuser")
         }
     }
 
@@ -110,7 +110,7 @@ class TeamTest {
     private fun assertTeamMembers(teamName: String, size: Int, vararg users: String) {
         val result = JPM(File("."), listOf("team", "list", teamName)).runAndAssert()
         assertThat(result.stdOut.first().split(" "), hasItem("$size"))
-        assertThat(result.stdOut, hasItems(*users.map(::containsString).toTypedArray()))
+        assertThat(result.stdOut, hasItems(*users.map { it.toLowerCase() }.map(::containsString).toTypedArray()))
     }
 }
 

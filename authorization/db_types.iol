@@ -1,4 +1,3 @@
-/// AUTO-GENERATED CODE - DO NOT MODIFY
 type User: void {
     .username: string
     .password: string
