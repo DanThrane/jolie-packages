@@ -1,9 +1,0 @@
-{
-  "private": false,
-  "name": "publish-target",
-  "description": "A package which should be published",
-  "version": "0.1.0",
-  "authors": "Dan Sebastian Thrane <dthrane@gmail.com>",
-  "main": "main.ol",
-  "license": "MIT"
-}

@@ -239,6 +239,25 @@ main {
     }]
 
     [register(request)(Auth.out.token) {
+        length@StringUtils(request.password)(passwordLength);
+        if (passwordLength <= 5 || passwordLength >= 128) {
+            throw(AuthorizationFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Password length must be between 5 and 128 " +
+                    "characters"
+            })
+        };
+
+        length@StringUtils(request.username)(usernameLength);
+        if (usernameLength < 1 || usernameLength >= 64) {
+            throw(AuthorizationFault, {
+                .type = FAULT_BAD_REQUEST,
+                .message = "Username length must be between 1 and 64 " +
+                    "characters"
+            })
+        };
+
+
         DatabaseConnect;
 
         // Create user
@@ -322,7 +341,7 @@ main {
     [deleteGroup(request)(response) {
         groupName = request.groupName;
         GroupRequireNonAuth;
-        GroupFind;
+        GroupFind; // TODO delete the group
         undef(group)
     }]
 

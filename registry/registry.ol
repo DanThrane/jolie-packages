@@ -327,7 +327,7 @@ init {
  \\___/|_|   |_|  |_| |_| \\_\\___|\\__, |_|___/\\__|_|   \\__, |
                                 |___/                |___/
 ")();
-    println@Console("Ready!")()
+    println@Console("Ready!")() // Used by testing framework, do not remove
 }
 
 main {

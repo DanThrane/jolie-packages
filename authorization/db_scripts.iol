@@ -1,4 +1,3 @@
-/// AUTO-GENERATED CODE - DO NOT MODIFY
 include "database.iol"
 include "db_config.iol"
 
@@ -61,7 +60,7 @@ define UserCreate {
     DatabaseConnect;
     UserCreate.q.statement[0] = "
         INSERT INTO `user` (`username`, `password`)
-        VALUES (:username, :password)
+        VALUES (LOWER(:username), :password)
     ";
     UserCreate.q.statement[0].username = UserCreate.in.username;
     UserCreate.q.statement[0].password = UserCreate.in.password;
@@ -78,7 +77,7 @@ define UserDeleteById {
 define UserFindById {
     DatabaseConnect;
     UserFindById.q = "
-        SELECT `id`, `username`, `password`
+        SELECT `id`, LOWER(`username`), `password`
         FROM `user`
         WHERE id = :id
     ";
@@ -93,9 +92,9 @@ define UserFindById {
 define UserFindByUsername {
     DatabaseConnect;
     UserFindByUsername.q = "
-        SELECT `id`, `username`, `password`
+        SELECT `id`, LOWER(`username`), `password`
         FROM `user`
-        WHERE username = :username
+        WHERE username = LOWER(:username)
     ";
     UserFindByUsername.q.username = UserFindByUsername.in.username;
     query@Database(UserFindByUsername.q)(UserFindByUsername.result);
@@ -108,32 +107,9 @@ define UserFindByUsername {
 
 define UserDeleteByUsername {
     DatabaseConnect;
-    UserDeleteByUsername.q = "DELETE FROM `user` WHERE `username` = :username";
+    UserDeleteByUsername.q = "DELETE FROM `user` WHERE `username` = LOWER(:username)";
     UserDeleteByUsername.q.username = UserDeleteByUsername.in.username;
     update@Database(UserDeleteByUsername.q)(UserDeleteByUsername.out.result)
-}
-
-define UserFindByPassword {
-    DatabaseConnect;
-    UserFindByPassword.q = "
-        SELECT `id`, `username`, `password`
-        FROM `user`
-        WHERE password = :password
-    ";
-    UserFindByPassword.q.password = UserFindByPassword.in.password;
-    query@Database(UserFindByPassword.q)(UserFindByPassword.result);
-    UserFindByPassword._i = i;
-    for (i = 0, i < #UserFindByPassword.result.row, i++) {
-        UserFindByPassword.out.result[#UserFindByPassword.out.result] << UserFindByPassword.result.row[i]
-    };
-    i = UserFindByPassword._i
-}
-
-define UserDeleteByPassword {
-    DatabaseConnect;
-    UserDeleteByPassword.q = "DELETE FROM `user` WHERE `password` = :password";
-    UserDeleteByPassword.q.password = UserDeleteByPassword.in.password;
-    update@Database(UserDeleteByPassword.q)(UserDeleteByPassword.out.result)
 }
 
 define GroupCreate {
