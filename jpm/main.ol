@@ -848,10 +848,22 @@ main {
         }
     }]
 
-   [listTeamMembers(req)(res) {
+    [listTeamMembers(req)(res) {
         scope (s) {
             RequireTeamManagement;
             listTeamMembers@Registry(outReq)(res)
+        }
+    }]
+
+    [transfer(req)(res) {
+        scope (s) {
+            PackageRequired;
+            RequireRegistryAndToken;
+
+            transferRequest.packageName = package.name;
+            transferRequest.to = req.to;
+            transferRequest.token = token;
+            transfer@Registry(transferRequest)()
         }
     }]
 }

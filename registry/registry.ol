@@ -134,10 +134,10 @@ define GroupCreate {
         // Grant super privileges to current user for said group
         GroupSingletonName;
         changeGroupRights@Authorization({
-            .groupName = singletonGroupName,
-            .change[0].key = "group." + groupName,
-            .change[0].right = "super",
-            .change[0].grant = true
+            .sets[0].groupName = singletonGroupName,
+            .sets[0].change[0].key = "group." + groupName,
+            .sets[0].change[0].right = "super",
+            .sets[0].change[0].grant = true
         })()
     }
 }
@@ -244,15 +244,15 @@ define PackageCreate {
     groupName = "pkg-maintainers." + packageName;
     GroupCreate;
     changeGroupRights@Authorization({
-        .groupName = groupName,
+        .sets[0].groupName = groupName,
 
-        .change[0].key = "packages." + packageName,
-        .change[0].right = "write",
-        .change[0].grant = true,
+        .sets[0].change[0].key = "packages." + packageName,
+        .sets[0].change[0].right = "write",
+        .sets[0].change[0].grant = true,
 
-        .change[1].key = "packages." + packageName,
-        .change[1].right = "read",
-        .change[1].grant = true
+        .sets[0].change[1].key = "packages." + packageName,
+        .sets[0].change[1].right = "read",
+        .sets[0].change[1].grant = true
     })()
 }
 
@@ -444,10 +444,10 @@ main {
 
         GroupSingletonName;
         changeGroupRights@Authorization({
-            .groupName = singletonGroupName,
-            .change[0].key = "group." + groupName,
-            .change[0].right = "super",
-            .change[0].grant = true
+            .sets[0].groupName = singletonGroupName,
+            .sets[0].change[0].key = "group." + groupName,
+            .sets[0].change[0].right = "super",
+            .sets[0].change[0].grant = true
         })()
     }]
 
@@ -463,10 +463,10 @@ main {
         GroupRequireSuperPrivileges;
         GroupSingletonName;
         changeGroupRights@Authorization({
-            .groupName = singletonGroupName,
-            .change[0].key = "group." + groupName,
-            .change[0].right = "super",
-            .change[0].grant = false
+            .sets[0].groupName = singletonGroupName,
+            .sets[0].change[0].key = "group." + groupName,
+            .sets[0].change[0].right = "super",
+            .sets[0].change[0].grant = false
         })()
     }]
 
@@ -727,6 +727,98 @@ main {
             depRequest.package.name = request.packageName;
             depRequest.package.version << request.version;
             getDependencies@RegDB(depRequest)(response)
+        }
+    }]
+
+    [transfer(request)(response) {
+        scope(s) {
+            install(AuthorizationFault =>
+                    throw(RegistryFault, s.AuthorizationFault));
+            // validate token, token must be fresh to ensure that the user has
+            // re-authenticated before performing this
+            token = request.token;
+            revalidate = true;
+            UserGet; // currentUser: string
+
+            // validate that package and team exists
+            checkIfPackageExists@RegDB
+                ({ .packageName = request.packageName })
+                (packageExists);
+
+            if (!packageExists) {
+                throw(RegistryFault, {
+                    .type = 400,
+                    .message = "Unknown package"
+                })
+            };
+
+            newOwner = "teams." + request.to;
+            groupExists@Authorization(newOwner)(newOwnerExists);
+            if (!newOwnerExists) {
+                throw(RegistryFault, {
+                    .type = 400,
+                    .message = "Unknown recipient" + newOwner
+                })
+            };
+
+            // check rights of current user
+            resourceName = "packages." + request.packageName;
+            rightName = "write";
+            foundGroup = null;
+
+            getRightsByToken@Authorization(request.token)(rights);
+            foreach (groupName : rights.matrix) {
+                group -> rights.matrix.(groupName);
+                if (is_defined(group.(resourceName).(rightName))) {
+                    if (foundGroup != null) {
+                        // There should never be multiple groups with write
+                        // rights
+                        throw(RegistryFault, {
+                            .type = 500,
+                            .message = "Internal server fault"
+                        })
+                    };
+                    foundGroup = groupName
+
+                    // Ideally we would break here, but there is no way to
+                    // break an foreach early. Instead we just make sure no
+                    // other group has the right
+                }
+            };
+
+            if (foundGroup == null) {
+                throw(RegistryFault, {
+                    .type = 400,
+                    .message = "Unauthorized to perform transfer"
+                })
+            };
+
+            // update rights, transfering ownership from the original group to
+            // the new group
+            with (sets[0]) {
+                .groupName = foundGroup;
+                .change[0].key = resourceName;
+                .change[0].right = rightName;
+                .change[0].grant = false
+            };
+
+            with (sets[1]) {
+                .groupName = newOwner;
+                .change[0].key = resourceName;
+                .change[0].right = rightName;
+                .change[0].grant = true
+            };
+
+            with (sets[2]) { // ensure new owner has read rights
+                .groupName = newOwner;
+                .change[0].key = resourceName;
+                .change[0].right = "read";
+                .change[0].grant = true
+            };
+
+            changeRequest.sets -> sets;
+
+            changeGroupRights@Authorization(changeRequest)()
         }
     }]
 

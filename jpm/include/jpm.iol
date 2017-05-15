@@ -73,6 +73,11 @@ type JPMTeamMemberManagementRequest: void {
     .registry: string
 }
 
+type TransferRequest: void {
+    .to: string
+    .registry: string
+}
+
 interface IJPM {
     RequestResponse:
         setContext(string)(void)
@@ -139,6 +144,9 @@ interface IJPM {
             throws ServiceFault(ErrorMessage),
 
         dependencyTree(void)(undefined)
+            throws ServiceFault(ErrorMessage),
+
+        transfer(TransferRequest)(void)
             throws ServiceFault(ErrorMessage)
 }
 

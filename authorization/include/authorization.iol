@@ -31,8 +31,10 @@ type RightsChangeRequest: void {
 }
 
 type AuthRightsRequest: void {
-    .groupName: string
-    .change[1, *]: RightsChangeRequest
+    .sets[1, *]: void {
+        .groupName: string
+        .change[1, *]: RightsChangeRequest
+    }
 }
 
 type AuthGroupMemberRequest: void {
@@ -82,34 +84,51 @@ type GroupMembersResponse: void {
     .members[0, *]: string
 }
 
+type UserRights: void {
+    .username: string
+    // matrix a dictionary of type:
+    // (groupName) -> (resourceName) -> (right) -> bool
+    .matrix: undefined
+}
+
 interface IAuthorization {
     RequestResponse:
         register(AuthRegistrationRequest)(AccessToken)
             throws AuthorizationFault(ErrorMessage),
+
         authenticate(AuthAuthorizationRequest)(AccessToken)
             throws AuthorizationFault(ErrorMessage),
+
         invalidate(AccessToken)(void),
+
         validate(AuthValidationRequest)(AuthValidationResponse),
+
         createGroup(AuthGroupRequest)(void)
             throws AuthorizationFault(ErrorMessage),
-        deleteGroup(AuthGroupRequest)(void)
-            throws AuthorizationFault(ErrorMessage),
+
         changeGroupRights(AuthRightsRequest)(void)
             throws AuthorizationFault(ErrorMessage),
+
         addGroupMembers(AuthGroupMemberRequest)(void)
             throws AuthorizationFault(ErrorMessage),
+
         removeGroupMembers(AuthGroupMemberRequest)(void)
             throws AuthorizationFault(ErrorMessage),
-        getGroup(AuthGroupRequest)(Group)
-            throws AuthorizationFault(ErrorMessage),
-        listGroupsByUser(AuthListGroupsRequest)(AuthListGroupsResponse)
-            throws AuthorizationFault(ErrorMessage),
+
         hasAnyOfRights(RightsCheckRequest)(bool),
+
         hasAllOfRights(RightsCheckRequest)(bool),
+
         revokeRights(RevokeRequest)(void)
             throws AuthorizationFault(ErrorMessage),
+
         getGroupMembers(GroupMembersRequest)(GroupMembersResponse)
             throws AuthorizationFault(ErrorMessage),
-        debug(void)(void)
+
+        getRightsByToken(AccessToken)(UserRights)
+            throws AuthorizationFault(ErrorMessage),
+
+        groupExists(string)(bool)
+            throws AuthorizationFault(ErrorMessage),
 }
 

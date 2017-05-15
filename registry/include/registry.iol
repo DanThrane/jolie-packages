@@ -105,6 +105,12 @@ type ChecksumResponse: void {
     .result[0, 1]: string
 }
 
+type RegTransferRequest: void {
+    .packageName: string
+    .to: string
+    .token: string
+}
+
 interface IRegistry {
     RequestResponse:
         authenticate(AuthenticationRequest)(AuthenticationResponse)
@@ -156,6 +162,9 @@ interface IRegistry {
             throws RegistryFault(ErrorMessage),
 
         checksum(ChecksumRequest)(ChecksumResponse)
+            throws RegistryFault(ErrorMessage),
+
+        transfer(RegTransferRequest)(void)
             throws RegistryFault(ErrorMessage)
 }
 

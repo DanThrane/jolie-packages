@@ -239,12 +239,6 @@ init {
 }
 
 main {
-    [debug()() {
-        // TODO This should obviously not be left in.
-        value -> global.sessions; DebugPrintValue;
-        value -> global.groups; DebugPrintValue
-    }]
-
     [register(request)(Auth.out.token) {
         NormalizeRequestUsername;
         length@StringUtils(request.password)(passwordLength);
@@ -347,61 +341,60 @@ main {
         }
     }]
 
-    [deleteGroup(request)(response) {
-        groupName = request.groupName;
-        GroupRequireNonAuth;
-        GroupFind; // TODO delete the group
-        undef(group)
-    }]
-
     [changeGroupRights(request)(response) {
-        groupName = request.groupName;
-        GroupRequireNonAuth;
+        for (setIdx = 0, setIdx < #request.sets, setIdx++)  {
+            groupName = request.sets[setIdx].groupName;
+            println@Console(groupName)();
+            GroupRequireNonAuth;
 
-        GroupFindByGroupName.in.groupName = groupName;
-        GroupFindByGroupName;
-        group -> GroupFindByGroupName.out.result;
+            undef(GroupFindByGroupName.out);
+            GroupFindByGroupName.in.groupName = groupName;
+            GroupFindByGroupName;
+            group << GroupFindByGroupName.out.result;
 
-        if (#group == 0) {
-            throw(AuthorizationFault, {
-                .type = FAULT_BAD_REQUEST,
-                .message = "Unknown group!"
-            })
-        };
+            if (#group == 0) {
+                throw(AuthorizationFault, {
+                    .type = FAULT_BAD_REQUEST,
+                    .message = "Unknown group!"
+                })
+            };
 
-        change -> request.change[i];
-        for (i = 0, i < #request.change, i++) {
-            if (change.grant) {
-                undef(insertQ);
-                insertQ = "
-                    INSERT INTO group_rights (groupId, resource, value)
-                      SELECT :groupId, :resource, :value
-                      EXCEPT
-                      SELECT groupId, resource, value
-                      FROM group_rights
-                      WHERE
-                        groupId = :groupId AND
-                        resource = :resource AND
-                        value = :value
-                ";
-                insertQ.groupId = group.id;
-                insertQ.resource = change.key;
-                insertQ.value = change.right;
-                batch.statement[#batch.statement] << insertQ
-            } else {
-                undef(deleteQ);
-                deleteQ = "
-                    DELETE FROM group_rights
-                    WHERE
-                        groupId = :groupId AND
-                        resource = :resource AND
-                        value = :value
-                ";
-                deleteQ.groupId = group.id;
-                deleteQ.resource = change.key;
-                deleteQ.value = change.right;
+            changes -> request.sets[setIdx].change;
+            change -> changes[i];
+            for (i = 0, i < #changes, i++) {
+                println@Console(group.id)();
+                if (change.grant) {
+                    undef(insertQ);
+                    insertQ = "
+                        INSERT INTO group_rights (groupId, resource, value)
+                          SELECT :groupId, :resource, :value
+                          EXCEPT
+                          SELECT groupId, resource, value
+                          FROM group_rights
+                          WHERE
+                            groupId = :groupId AND
+                            resource = :resource AND
+                            value = :value
+                    ";
+                    insertQ.groupId = group.id;
+                    insertQ.resource = change.key;
+                    insertQ.value = change.right;
+                    batch.statement[#batch.statement] << insertQ
+                } else {
+                    undef(deleteQ);
+                    deleteQ = "
+                        DELETE FROM group_rights
+                        WHERE
+                            groupId = :groupId AND
+                            resource = :resource AND
+                            value = :value
+                    ";
+                    deleteQ.groupId = group.id;
+                    deleteQ.resource = change.key;
+                    deleteQ.value = change.right;
 
-                batch.statement[#batch.statement] << deleteQ
+                    batch.statement[#batch.statement] << deleteQ
+                }
             }
         };
         executeTransaction@Database(batch)()
@@ -509,15 +502,6 @@ main {
         }
     }]
 
-    [getGroup(request)(response) {
-        nullProcess // TODO Do we need this?
-    }]
-
-    [listGroupsByUser(request)(response) {
-        NormalizeRequestUsername;
-        nullProcess // TODO Do we need this?
-    }]
-
     [hasAllOfRights(request)(response) {
         UserRightsByToken.in.token = request.token;
         UserRightsByToken;
@@ -572,6 +556,71 @@ main {
         q.groupId = group.id;
         q.resource = request.key;
         update@Database(q)()
+    }]
+
+    [getRightsByToken(reqToken)(response) {
+        // Validate token and query user
+        DatabaseConnect;
+
+        AuthTokenFindByToken.in.token = reqToken;
+        AuthTokenFindByToken;
+        token -> AuthTokenFindByToken.out.result;
+        if (#token == 0) {
+            throw(AuthorizationFault, {
+                .type = 400,
+                .message = "Invalid token"
+            })
+        };
+
+        UserFindById.in.id = token.userId;
+        UserFindById;
+        user -> UserFindById.out.result;
+
+        if (#user == 0) {
+            throw(AuthorizationFault, {
+                .type = 400,
+                .message = "Invalid token"
+            })
+        };
+
+        response.username = user.username;
+
+        // Find the rights of the user
+        q = "
+            SELECT
+                g.groupName AS group_name,
+                gr.id AS gr_id,
+                gr.resource AS resource,
+                gr.value AS value
+            FROM
+                group_rights gr,
+                `group` g,
+                group_member gm,
+                `user` u,
+                auth_token t
+            WHERE
+                g.id = gr.groupId AND
+                gm.groupId = g.id AND
+                gm.userId = u.id AND
+                t.userId = u.id AND
+                t.token = :token
+        ";
+        q.token = reqToken;
+
+        query@Database(q)(result);
+
+        // And finally marshall data into our desired format
+        row -> result.row[i];
+        for (i = 0, i < #result.row, i++) {
+            response.matrix.(row.group_name).(row.resource).(row.value) = true
+        }
+    }]
+
+    [groupExists(groupName)(groupExists) {
+        GroupFindByGroupName.in.groupName = groupName;
+        GroupFindByGroupName;
+        results -> GroupFindByGroupName.out.result;
+        groupExists = #results == 1
     }]
 }
 

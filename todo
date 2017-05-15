@@ -1,7 +1,0 @@
-Fix team and management
-jpm transfer <team>
-
-Potentially add changing password with token timeout
-
-Overall code improvements, whatever can be done today will be good. 
-Don't over commit :-)
