@@ -55,11 +55,13 @@ embedded {
 
 parameters {
     PUBLIC_LOCATION: string,
-    ENABLE_KILL_COMMAND: string,
+    ENABLE_KILL_COMMAND: bool,
     KILL_TOKEN: string,
-    FRESH_TOKEN: string,
+    FRESH_TOKEN: long,
     DATA_DIR: string,
-    TRUSTED_PEERS: undefined
+    TRUSTED_PEERS: void {
+        .location[0, *]: string
+    }
 }
 
 constants {

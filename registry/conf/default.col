@@ -1,9 +1,4 @@
 profile "default" configures "registry" {
-    DATABASE_USERNAME = "",
-    DATABASE_PASSWORD = "",
-    DATABASE_HOST = "",
-    DATABASE_BASE = "/home/dan/registry.db",
-    DATABASE_DRIVER = "sqlite",
     ENABLE_KILL_COMMAND = false,
     KILL_TOKEN = "",
     FRESH_TOKEN = 60000L,
